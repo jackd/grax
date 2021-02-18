@@ -1,0 +1,20 @@
+[MESSAGES CONTROL]
+
+disable=
+    bad-continuation,
+    bad-whitespace,
+    invalid-name,
+    missing-module-docstring,
+    missing-class-docstring,
+    missing-function-docstring,
+    redefined-outer-name,
+    c-extension-no-member,
+    too-many-arguments,
+    too-many-instance-attributes,
+    too-many-locals,
+    invalid-unary-operand-type,
+    not-context-manager
+
+[format]
+
+max-line-length=88

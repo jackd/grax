@@ -1,0 +1,8 @@
+*.egg-info
+.mypy_cache
+.vscode
+.atom
+*.pyc
+__pycache__
+.benchmarks
+.pytest_cache
