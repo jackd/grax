@@ -1,0 +1,5 @@
+import grax.config
+
+include "grax_config/single/data/base.gin"
+data_name = "cite_seer"
+num_classes = 6

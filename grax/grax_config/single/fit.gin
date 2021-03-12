@@ -1,0 +1,36 @@
+import grax.config
+import grax.huf_utils
+import grax.problems.single.fit
+import huf.callbacks
+import huf.cli
+import huf.config
+import huf.configurables
+
+include "huf_config/models/base.gin"
+include "huf_config/models/classifier.gin"
+
+net_transform = @grax.problems.single.semi_supervised_net_fun
+grax.problems.single.semi_supervised_net_fun.module_fun = %module_fun
+
+huf.cli.main.fun = @grax.problems.single.fit_semi_supervised_single
+
+grax.problems.single.fit_semi_supervised_single.rng = %fit_rng
+grax.problems.single.fit_semi_supervised_single.model = %model
+grax.problems.single.fit_semi_supervised_single.data = %data
+grax.problems.single.fit_semi_supervised_single.steps = %steps
+grax.problems.single.fit_semi_supervised_single.callbacks = %callbacks
+
+callbacks = [
+    @huf.callbacks.EpochProgbarLogger(),
+    @huf.callbacks.EarlyStopping(),
+]
+fit_rng = @jax.random.PRNGKey()
+fit_rng/jax.random.PRNGKey.seed = %fit_seed
+fit_seed = 0
+huf.callbacks.EarlyStopping.monitor = %monitor
+huf.callbacks.EarlyStopping.patience = %patience
+huf.callbacks.EarlyStopping.restore_best = True
+huf.callbacks.EarlyStopping.is_validation = True
+
+monitor = "loss"
+patience = 100

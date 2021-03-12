@@ -1,0 +1,5 @@
+import grax.config
+
+include "grax_config/single/data/base.gin"
+data_name = "cora"
+num_classes = 7

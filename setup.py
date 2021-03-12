@@ -1,6 +1,7 @@
 import os
+from pathlib import Path
 
-from setuptools import setup
+from setuptools import find_packages, setup
 
 # We follow Semantic Versioning (https://semver.org/)
 _MAJOR_VERSION = "0"
@@ -10,14 +11,21 @@ _PATCH_VERSION = "1"
 with open(os.path.join(os.path.dirname(__file__), "requirements.txt")) as fp:
     install_requires = fp.read().split("\n")
 
+
+def glob_fix(package_name, glob):
+    package_path = Path(os.path.join(os.path.dirname(__file__), package_name)).resolve()
+    return [str(path.relative_to(package_path)) for path in package_path.glob(glob)]
+
+
 setup(
-    name="python_pkg",  # TODO
-    description="python package template",  # TODO
-    url="https://github.com/jackd/python-pkg",  # TODO
+    name="grax",
+    description="Graph Networks with Jax",
+    url="https://github.com/jackd/grax",
     author="Dominic Jack",
     author_email="thedomjack@gmail.com",
     license="Apache 2.0",
-    packages=["python_pkg"],  # TODO
+    packages=find_packages(),
+    package_data={"grax": glob_fix("grax", "**/*.gin")},
     install_requires=install_requires,
     zip_safe=True,
     python_requires=">=3.6",

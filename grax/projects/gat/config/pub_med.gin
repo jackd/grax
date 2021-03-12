@@ -1,0 +1,9 @@
+import grax.config
+
+include "grax_config/single/data/pub_med.gin"
+include "gat/config/base.gin"
+
+weight_decay = 1e-3
+final_heads = 8
+lr = 1e-2
+monitor = 'loss'

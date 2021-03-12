@@ -1,0 +1,15 @@
+import grax.problems.single.data
+
+data = @grax.problems.single.transformed_simple()
+grax.problems.single.transformed_simple.base = %base_data
+grax.problems.single.transformed_simple.graph_transform = %graph_transform
+grax.problems.single.transformed_simple.node_features_transform = %node_features_transform
+grax.problems.single.transformed_simple.largest_component = %largest_component
+
+largest_component = False
+graph_transform = None
+node_features_transform = None
+fmt = None
+
+base_data = @grax.problems.single.citations_data()
+grax.problems.single.citations_data.name = %data_name

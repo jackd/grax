@@ -1,0 +1,9 @@
+import grax.config
+
+include "grax_config/single/data/cora.gin"
+include "gat/config/base.gin"
+
+weight_decay = 5e-4
+final_heads = 1
+lr = 5e-3
+monitor = 'acc'

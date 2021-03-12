@@ -1,0 +1,7 @@
+dm-haiku
+optax
+elegy
+tensorflow-datasets
+graph_tfds@ git+git://github.com/jackd/graph-tfds.git
+spax@ git+git://github.com/jackd/spax.git
+huf@ git+git://github.com/jackd/huf.git
