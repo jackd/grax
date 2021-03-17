@@ -6,3 +6,6 @@
 __pycache__
 .benchmarks
 .pytest_cache
+grax/projects/spag
+grax/projects/dagnn2
+grax/projects/dagnn3

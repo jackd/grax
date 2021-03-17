@@ -35,17 +35,18 @@ def fit_semi_supervised_single(
     initial_state: tp.Optional[huf.types.ModelState] = None,
     callbacks: tp.Iterable[huf.callbacks.Callback] = (),
     verbose: bool = True,
+    dtype=jnp.float32,
 ):
     # not sure why we need to unpack/repack graph, but avoids errors in GAT
     graph = data.graph.tocoo()
-    inputs = (graph.coords, graph.data, data.node_features)
-    train_example = inputs, data.labels, data.train_mask.astype(jnp.float32)
+    inputs = (graph.coords, graph.data.astype(dtype), data.node_features.astype(dtype))
+    train_example = inputs, data.labels, data.train_mask.astype(dtype)
     validation_example = (
         inputs,
         data.labels,
-        data.validation_mask.astype(jnp.float32),
+        data.validation_mask.astype(dtype),
     )
-    test_example = inputs, data.labels, data.test_mask.astype(jnp.float32)
+    test_example = inputs, data.labels, data.test_mask.astype(dtype)
 
     result = model.fit(
         rng,
@@ -65,7 +66,7 @@ def fit_semi_supervised_single(
     for name, metrics in (
         ("train", result.train_metrics),
         ("validation", result.validation_metrics),
-        ("test_metrics", test_metrics),
+        ("test", test_metrics),
     ):
         print(f"{name} metrics:")
         for k in sorted(metrics):

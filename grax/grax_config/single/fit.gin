@@ -19,10 +19,15 @@ grax.problems.single.fit_semi_supervised_single.model = %model
 grax.problems.single.fit_semi_supervised_single.data = %data
 grax.problems.single.fit_semi_supervised_single.steps = %steps
 grax.problems.single.fit_semi_supervised_single.callbacks = %callbacks
+grax.problems.single.fit_semi_supervised_single.dtype = %dtype
+
+dtype = "float32"
 
 callbacks = [
     @huf.callbacks.EpochProgbarLogger(),
+    # @huf.callbacks.EpochVerboseLogger(),
     @huf.callbacks.EarlyStopping(),
+    @huf.callbacks.TerminateOnNaN(),
 ]
 fit_rng = @jax.random.PRNGKey()
 fit_rng/jax.random.PRNGKey.seed = %fit_seed

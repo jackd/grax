@@ -32,6 +32,15 @@ def add_identity(x: T, scale: float = 1.0) -> T:
 
 
 @configurable
+def linear_transform(x: T, shift: float = 0.0, scale: float = 1.0):
+    if shift:
+        x = add_identity(x, -shift)
+    if scale != 1:
+        x = ops.scale(x, 1.0 / scale)
+    return x
+
+
+@configurable
 def to_format(arr: SparseArray, fmt: str):
     if fmt == "coo":
         return arr.tocoo()

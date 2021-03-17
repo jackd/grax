@@ -19,6 +19,9 @@ dagnn.DAGNN.num_classes = %num_classes
 dagnn.DAGNN.hidden_filters = %filters
 dagnn.DAGNN.dropout_rate = %dropout_rate
 dagnn.DAGNN.num_propagations = %num_propagations
+dagnn.DAGNN.gate_activation = %gate_activation
+
+gate_activation = @jax.nn.sigmoid
 
 optimizer = @optax.chain_star()
 optax.chain_star.transforms = [

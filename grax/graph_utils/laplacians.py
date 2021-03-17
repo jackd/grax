@@ -13,7 +13,7 @@ configurable = partial(gin.configurable, module="grax.graph_utils.laplacians")
 
 @configurable
 def laplacian(
-    adj: SparseArray, shift: float = 0.0
+    adj: SparseArray, shift: float = 0.0, return_row_sum=True,
 ) -> tp.Tuple[SparseArray, jnp.ndarray]:
     """
     Get a possibly shifted Laplacian matrix.
@@ -25,18 +25,22 @@ def laplacian(
     Args:
         adj: [n, n] adjacency matrix.
         shift: scalar diagonal shift.
+        return_row_sum: if True, returns the row sum as well.
 
     Returns:
         L: [n, n] Sparse Laplacian as above
-        row_sum: [n] sum over rows of `adj`.
+        row_sum: [n] sum over rows of `adj` if `return_row_sum`.
     """
     row_sum = ops.sum(adj, axis=1)
-    return ops.subtract(diag(row_sum - shift), adj), row_sum
+    L = ops.subtract(diag(row_sum - shift), adj)
+    if return_row_sum:
+        return L, row_sum
+    return L
 
 
 @configurable
 def normalized_laplacian(
-    adj: tp.Union[SparseArray, jnp.ndarray], shift: float = 0.0
+    adj: tp.Union[SparseArray, jnp.ndarray], shift: float = 0.0, return_row_sum=True
 ) -> tp.Tuple[SparseArray, jnp.ndarray]:
     """
     Get a possibly-shifted normalized laplacian matrix.
@@ -60,7 +64,9 @@ def normalized_laplacian(
         ops.mul(eye(adj.shape[0], dtype=dtype), jnp.asarray(1 - shift, dtype)),
         ops.scale_columns(ops.scale_rows(adj, D), D),
     )
-    return L, row_sum
+    if return_row_sum:
+        return L, row_sum
+    return L
 
 
 def normalized_laplacian_zero_eigenvector(row_sum: jnp.ndarray):
