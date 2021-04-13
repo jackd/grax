@@ -1,0 +1,7 @@
+import grax.config
+
+include "grax_config/single/data/pitfalls.gin"
+include "grax_config/single/data/randomize_splits.gin"
+
+data_name = "amazon/photo"
+num_classes = 8

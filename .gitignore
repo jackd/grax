@@ -9,3 +9,5 @@ __pycache__
 grax/projects/spag
 grax/projects/dagnn2
 grax/projects/dagnn3
+grax/projects/dagnn4
+examples/adj_eigs.py

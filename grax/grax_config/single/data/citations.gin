@@ -1,0 +1,4 @@
+import grax.config
+
+include "grax_config/single/data/base.gin"
+base_data = @grax.problems.single.citations_data()

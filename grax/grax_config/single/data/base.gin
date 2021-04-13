@@ -5,11 +5,12 @@ grax.problems.single.transformed_simple.base = %base_data
 grax.problems.single.transformed_simple.graph_transform = %graph_transform
 grax.problems.single.transformed_simple.node_features_transform = %node_features_transform
 grax.problems.single.transformed_simple.largest_component = %largest_component
+grax.problems.single.transformed_simple.transform = %transform
 
 largest_component = False
 graph_transform = None
 node_features_transform = None
 fmt = None
+transform = ()
 
-base_data = @grax.problems.single.citations_data()
 grax.problems.single.citations_data.name = %data_name

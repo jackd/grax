@@ -3,12 +3,21 @@ from dataclasses import dataclass
 from functools import partial
 
 import gin
+import jax
 import jax.numpy as jnp
 import networkx as nx
 import tensorflow as tf
 import tensorflow_datasets as tfds
 
-from graph_tfds.graphs import cite_seer, cora, pub_med  # pylint: disable=unused-import
+from graph_tfds.graphs import (  # pylint: disable=unused-import
+    amazon,
+    cite_seer,
+    coauthor,
+    cora,
+    pub_med,
+)
+from grax.problems.single.splits import split_by_class
+from huf.types import PRNGKey
 from spax import COO, SparseArray, ops
 
 configurable = partial(gin.configurable, module="grax.problems.single")
@@ -28,9 +37,9 @@ class SemiSupervisedSingle:
     node_features: tp.Union[jnp.ndarray, SparseArray]  # [N, F]
     graph: SparseArray  # [N, N]
     labels: jnp.ndarray  # [N]
-    train_ids: jnp.ndarray  # [n_train << N]
-    validation_ids: jnp.ndarray  # [n_eval < N]
-    test_ids: jnp.ndarray  # [n_test < N]
+    train_ids: tp.Optional[jnp.ndarray]  # [n_train << N]
+    validation_ids: tp.Optional[jnp.ndarray]  # [n_eval < N]
+    test_ids: tp.Optional[jnp.ndarray]  # [n_test < N]
 
     def __post_init__(self):
         assert self.node_features.ndim == 2, self.node_features.shape
@@ -39,8 +48,8 @@ class SemiSupervisedSingle:
         ), self.node_features.dtype
 
         for ids in (self.train_ids, self.validation_ids, self.test_ids):
-            assert ids.ndim == 1, ids.shape
-            assert jnp.issubdtype(ids.dtype, jnp.integer), ids.dtype
+            assert ids is None or ids.ndim == 1, ids.shape
+            assert ids is None or jnp.issubdtype(ids.dtype, jnp.integer), ids.dtype
 
     @property
     def num_nodes(self) -> int:
@@ -103,7 +112,7 @@ def subgraph(single: SemiSupervisedSingle, indices: jnp.ndarray):
     )
 
     def valid_ids(ids):
-        return remap_indices[ids]
+        return None if ids is None else remap_indices[ids]
 
     return SemiSupervisedSingle(
         node_features,
@@ -115,20 +124,23 @@ def subgraph(single: SemiSupervisedSingle, indices: jnp.ndarray):
     )
 
 
-@configurable
-def get_largest_component(single: SemiSupervisedSingle):
+def get_largest_component_indices(graph: COO, dtype: jnp.dtype = jnp.int32):
     # create nx graph
     g = nx.Graph()
-    for u, v in single.graph.tocoo().coords.T:
+    for u, v in graph.tocoo().coords.T:
         g.add_edge(u, v)
     if nx.is_connected(g):
-        return single
-
+        return jnp.arange(graph.coords.shape[1], dtype=dtype)
     # enumerate used for tie-breaking purposes
     _, _, component = max(
         ((len(c), i, c) for i, c in enumerate(nx.connected_components(g)))
     )
-    return subgraph(single, tuple(component))
+    return jnp.asarray(sorted(component), dtype=dtype)
+
+
+@configurable
+def get_largest_component(single: SemiSupervisedSingle):
+    return subgraph(single, get_largest_component_indices(single.graph))
 
 
 @configurable
@@ -174,6 +186,44 @@ def citations_data(name: str = "cora") -> SemiSupervisedSingle:
     )
 
 
+@configurable
+def pitfalls_data(name: str = "amazon/computers"):
+    dataset = tfds.load(name)
+    if isinstance(dataset, dict):
+        if len(dataset) == 1:
+            (dataset,) = dataset.values()
+        else:
+            raise ValueError(
+                f"tfds builder {name} had more than 1 split ({sorted(dataset.keys())})."
+                " Please use 'name/split'"
+            )
+    element = tf.data.experimental.get_single_element(dataset)
+    graph = element["graph"]
+    features = graph["node_features"]
+    num_nodes = int(features.shape[0])
+    coords = graph["links"].numpy().T
+    row, col = coords
+    coords = coords[:, row != col]  # remove self-loops
+    graph = COO(
+        coords,
+        jnp.ones((coords.shape[1],), dtype=jnp.float32),
+        shape=(num_nodes, num_nodes),
+    )
+    # add reverse edges
+    graph = ops.add(graph, ops.transpose(graph))
+    labels = jnp.asarray(element["node_labels"].numpy())
+
+    if isinstance(features, tf.SparseTensor):
+        features = COO(
+            features.indices.numpy().T, features.values.numpy(), tuple(features.shape),
+        )
+    else:
+        features = jnp.asarray(features.numpy())
+
+    data = SemiSupervisedSingle(features, graph, labels, None, None, None)
+    return data
+
+
 Transform = tp.Union[tp.Callable[[SemiSupervisedSingle], SemiSupervisedSingle], None]
 
 
@@ -216,6 +266,26 @@ def graph_transform(transform_fun: tp.Callable):
 SingleTransform = tp.Callable[[SemiSupervisedSingle], SemiSupervisedSingle]
 GraphTransform = tp.Callable[[SparseArray], SparseArray]
 FeatureTransform = tp.Callable[[jnp.ndarray], jnp.ndarray]
+
+
+@configurable
+def randomize_splits(
+    single: SemiSupervisedSingle,
+    train_samples_per_class: int,
+    validation_samples_per_class: int,
+    rng: tp.Union[PRNGKey, int] = 0,
+):
+    if isinstance(rng, int):
+        rng = jax.random.PRNGKey(rng)
+    splits = split_by_class(
+        rng,
+        single.labels,
+        (train_samples_per_class, validation_samples_per_class),
+        single.num_classes,
+    )
+    return SemiSupervisedSingle(
+        single.node_features, single.graph, single.labels, *splits
+    )
 
 
 @configurable

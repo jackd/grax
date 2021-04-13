@@ -37,4 +37,3 @@ filters = 64
 
 steps = 1000
 patience = 100
-monitor = 'loss'

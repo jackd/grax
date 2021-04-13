@@ -1,17 +1,11 @@
-import grax.config
+import huf.ray.tune.configurables
 
-include "grax_config/single/fit.gin"
+include "grax_config/single/tune.gin"
 
-huf.cli.main.fun = @grax.problems.single.fit_semi_supervised_single_many
-
-grax.problems.single.fit_semi_supervised_single_many.rngs = %fit_rngs
-grax.problems.single.fit_semi_supervised_single_many.model = %model
-grax.problems.single.fit_semi_supervised_single_many.data = %data
-grax.problems.single.fit_semi_supervised_single_many.steps = %steps
-grax.problems.single.fit_semi_supervised_single_many.callbacks = %callbacks
-
-fit_rngs = @jax.random.split()
-fit_rngs/jax.random.split.key = %fit_rng
-fit_rngs/jax.random.split.num = %num_repeats
-
+seed = @ray.tune.grid_search()
+seed/ray.tune.grid_search.values = @seed/list()
+seed/list.iterable = @seed/range()
+seed/range.start_or_stop = %num_repeats
 num_repeats = 10
+
+tune_config = {"seed": %seed}

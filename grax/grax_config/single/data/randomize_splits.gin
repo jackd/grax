@@ -1,0 +1,11 @@
+import grax.problems.single.data
+
+transform = @grax.problems.single.randomize_splits
+grax.problems.single.randomize_splits.train_samples_per_class = %train_samples_per_class
+grax.problems.single.randomize_splits.validation_samples_per_class = %validation_samples_per_class
+grax.problems.single.randomize_splits.rng = %split_seed
+
+train_samples_per_class = 20
+validation_samples_per_class = 30
+
+split_seed = 531

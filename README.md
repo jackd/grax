@@ -10,7 +10,6 @@ This project uses the following large open-source projects:
 - [haiku][haiku] for parameter / state management;
 - [optax][optax] for optimizer implementations; and
 - [tensorflow-datasets](https://github.com/tensorflow/datasets) as a dataset framework.
-Where possible, we prefer to use the lowest level constructs (where `jax < haiku == optax < elegy`).
 
 Additional functionality is provided in smaller repositories:
 
@@ -41,7 +40,7 @@ python -m grax grax_config/single/fit.gin gcn/config/pub_med.gin
 # customize configuration
 python -m grax grax_config/single/fit.gin gcn/config/pub_med.gin --bindings='
 dropout_rate=0.6
-fit_seed=1
+seed=1
 '
 # perform multiple runs
 python -m grax grax_config/single/fit_many.gin gcn/config/pub_med.gin

@@ -2,13 +2,14 @@ import typing as tp
 from functools import partial
 
 import gin
-import jax
 import jax.numpy as jnp
 
 import haiku as hk
 import huf
 import spax
 from grax.problems.single import data
+from huf.metrics import get_combined_metrics
+from huf.types import FitState, Metrics, Splits
 
 configurable = partial(gin.configurable, module="grax.problems.single")
 
@@ -26,76 +27,48 @@ def semi_supervised_net_fun(
 
 
 @configurable
-def fit_semi_supervised_single(
-    rng: huf.types.PRNGKey,
-    model: huf.models.Model,
-    data: data.SemiSupervisedSingle,
-    steps: int,
-    initial_step: int = 0,
-    initial_state: tp.Optional[huf.types.ModelState] = None,
-    callbacks: tp.Iterable[huf.callbacks.Callback] = (),
-    verbose: bool = True,
-    dtype=jnp.float32,
+def as_example(
+    data: data.SemiSupervisedSingle, split: str = Splits.TRAIN, dtype=jnp.float32
 ):
     # not sure why we need to unpack/repack graph, but avoids errors in GAT
-    graph = data.graph.tocoo()
-    inputs = (graph.coords, graph.data.astype(dtype), data.node_features.astype(dtype))
-    train_example = inputs, data.labels, data.train_mask.astype(dtype)
-    validation_example = (
-        inputs,
-        data.labels,
-        data.validation_mask.astype(dtype),
-    )
-    test_example = inputs, data.labels, data.test_mask.astype(dtype)
-
-    result = model.fit(
-        rng,
-        [train_example],
-        epochs=steps,
-        validation_data=[validation_example],
-        initial_state=initial_state,
-        initial_epoch=initial_step,
-        callbacks=callbacks,
-        verbose=verbose,
-    )
-    model_state = result.model_state
-    test_metrics = model.evaluate(
-        model_state.params, model_state.net_state, [test_example]
-    )
-    print(f"Results after {result.epochs} steps")
-    for name, metrics in (
-        ("train", result.train_metrics),
-        ("validation", result.validation_metrics),
-        ("test", test_metrics),
-    ):
-        print(f"{name} metrics:")
-        for k in sorted(metrics):
-            print(f"{k}: {metrics[k]}")
-    return test_metrics
+    if split == Splits.TRAIN:
+        mask = data.train_mask
+    elif split == Splits.VALIDATION:
+        mask = data.validation_mask
+    elif split == Splits.TEST:
+        mask = data.test_mask
+    else:
+        raise ValueError(f"Invalid split {split}.")
+    graph = data.graph
+    inputs = graph.coords, graph.data.astype(dtype), data.node_features.astype(dtype)
+    return (inputs, data.labels, mask.astype(dtype))
 
 
 @configurable
-def fit_semi_supervised_single_many(
-    rngs: tp.Iterable[huf.types.PRNGKey], *args, **kwargs
-):
-    if len(rngs) == 0:
-        raise ValueError("Must provide at least one rng")
-    test_metrics = [
-        fit_semi_supervised_single(
-            rngs[0], *args, verbose=kwargs.pop("verbose", True), **kwargs
-        )
-    ]
-    test_metrics.extend(
-        [
-            fit_semi_supervised_single(rng, *args, verbose=False, **kwargs)
-            for rng in rngs[1:]
-        ]
+def fit_semi_supervised(
+    model: huf.models.Model,
+    initial_state: tp.Union[int, huf.types.PRNGKey, FitState],
+    data: data.SemiSupervisedSingle,
+    steps: int,
+    callbacks: tp.Iterable[huf.callbacks.Callback] = (),
+    verbose: bool = True,
+    dtype=jnp.float32,
+) -> Metrics:
+    train_example = as_example(data, Splits.TRAIN, dtype=dtype)
+    validation_example = as_example(data, Splits.VALIDATION, dtype=dtype)
+    test_example = as_example(data, Splits.TEST, dtype=dtype)
+
+    result = model.fit(
+        initial_state,
+        [train_example],
+        epochs=steps,
+        validation_data=[validation_example],
+        callbacks=callbacks,
+        verbose=verbose,
     )
-    test_metrics = jax.tree_util.tree_multimap(lambda *x: jnp.asarray(x), *test_metrics)
-    print("---------------------")
-    print(f"Metrics over {len(rngs)} runs")
-    print("---------------------")
-    for k in sorted(test_metrics):
-        m = test_metrics[k]
-        print(f"{k}: {m.mean()} +- {m.std()}, [{m.min()}, {m.max()}]")
-    return test_metrics
+    model_state = result.state.model_state
+    test_metrics = model.evaluate(model_state, [test_example])
+    metrics = get_combined_metrics(
+        result.train_metrics, result.validation_metrics, test_metrics
+    )
+    return metrics

@@ -1,5 +1,5 @@
 import grax.config
 
-include "grax_config/single/data/base.gin"
+include "grax_config/single/data/citations.gin"
 data_name = "pub_med"
 num_classes = 3

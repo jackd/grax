@@ -1,23 +1,30 @@
-import typing as tp
-
 import jax
 import jax.numpy as jnp
 
-import spax
 from spax.linalg.polynomials import iterate_chebyshev1
-from spax.linalg.utils import as_array_fun
+from spax.linalg.utils import ArrayOrFun, as_array_fun
 
 
-def krylov(a: tp.Union[jnp.ndarray, spax.SparseArray], b, dim: int):
-    out = [b]
+def _normalize(b, eps=1e-4):
+    return b / jnp.maximum(jnp.linalg.norm(b, axis=0), eps)
+
+
+def krylov(a: ArrayOrFun, b, dim: int, normalize: bool = False):
     a = as_array_fun(a)
+
+    if normalize:
+        b = _normalize(b)
+
+    out = [b]
     for _ in range(dim):
         b = a(b)
+        if normalize:
+            b = _normalize(b)
         out.append(b)
     return jnp.stack(out, axis=1)
 
 
-def lanczos(a: tp.Union[jnp.ndarray, spax.SparseArray], b, dim: int, eps: float = 1e-4):
+def lanczos(a: ArrayOrFun, b, dim: int, eps: float = 1e-4):
     a = as_array_fun(a)
     assert b.ndim == 1
     q = [jnp.zeros_like(b), b / jnp.maximum(jnp.linalg.norm(b, ord=2), eps)]
@@ -35,7 +42,7 @@ def lanczos(a: tp.Union[jnp.ndarray, spax.SparseArray], b, dim: int, eps: float 
     return jnp.stack(q, axis=1), jnp.stack(alpha), jnp.stack(beta)
 
 
-def chebyshev1(a: tp.Union[jnp.ndarray, spax.SparseArray], b, dim: int):
+def chebyshev1(a: ArrayOrFun, b, dim: int):
     assert dim >= 2
     a = as_array_fun(a)
     p0 = b

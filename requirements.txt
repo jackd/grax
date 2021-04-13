@@ -1,6 +1,5 @@
 dm-haiku
 optax
-elegy
 tensorflow-datasets
 gin-config
 networkx
