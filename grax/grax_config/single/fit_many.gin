@@ -1,11 +1,44 @@
-import huf.ray.tune.configurables
+import grax.config
+import grax.huf_utils
+import grax.problems.single.fit
+import huf
+import huf.callbacks
+import huf.cli
+import huf.config
+import huf.configurables
 
-include "grax_config/single/tune.gin"
+include "huf_config/models/base.gin"
+include "huf_config/models/classifier.gin"
 
-seed = @ray.tune.grid_search()
-seed/ray.tune.grid_search.values = @seed/list()
-seed/list.iterable = @seed/range()
-seed/range.start_or_stop = %num_repeats
+net_transform = @grax.problems.single.semi_supervised_net_fun
+grax.problems.single.semi_supervised_net_fun.module_fun = %module_fun
+
+huf.cli.main.fun = @grax.problems.single.fit_many_semi_supervised
+huf.cli.main.callbacks = [@huf.experiments.LambdaCallback()]
+
+huf.experiments.LambdaCallback.on_done = @grax.problems.single.print_moments
+grax.problems.single.fit_many_semi_supervised.num_repeats = %num_repeats
+grax.problems.single.fit_many_semi_supervised.experiment_callbacks = [@huf.experiments.Logger()]
+grax.problems.single.fit_many_semi_supervised.rng = %seed
+grax.problems.single.fit_many_semi_supervised.model = %model
+grax.problems.single.fit_many_semi_supervised.data = %data
+grax.problems.single.fit_many_semi_supervised.steps = %steps
+grax.problems.single.fit_many_semi_supervised.callbacks = %callbacks
+grax.problems.single.fit_many_semi_supervised.dtype = %dtype
+
 num_repeats = 10
 
-tune_config = {"seed": %seed}
+dtype = "float32"
+
+callbacks = [
+    @huf.callbacks.EpochProgbarLogger(),
+    @huf.callbacks.EarlyStopping(),
+    @huf.callbacks.TerminateOnNaN(),
+]
+seed = 0
+huf.callbacks.EarlyStopping.objective = %objective
+huf.callbacks.EarlyStopping.patience = %patience
+huf.callbacks.EarlyStopping.restore_best = True
+
+objective = @huf.objective()
+patience = 100

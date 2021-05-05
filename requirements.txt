@@ -1,6 +1,5 @@
 dm-haiku
 optax
-tensorflow-datasets
 gin-config
 networkx
 graph_tfds@ git+git://github.com/jackd/graph-tfds.git

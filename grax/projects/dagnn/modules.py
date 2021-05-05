@@ -2,34 +2,62 @@ import typing as tp
 from functools import partial
 
 import gin
-import jax
-import jax.numpy as jnp
 
 import haiku as hk
-import spax
+import jax
+import jax.numpy as jnp
 from grax.projects.dagnn.ops import krylov
 from huf.module_ops import dropout
 from huf.modules.vmap_linear import VmapLinear
 from huf.types import Activation
+from jax.experimental.sparse_ops import JAXSparse
+
+# from jax.experimental.host_callback import id_print
+
 
 configurable = partial(gin.configurable, module="dagnn")
 
 
 class GatedSum(hk.Module):
     def __init__(
-        self, *args, gate_activation: Activation = jax.nn.sigmoid, name=None, **kwargs
+        self,
+        *args,
+        gate_activation: Activation = tp.Optional[jax.nn.sigmoid],
+        add_weighted_range: bool = False,
+        name=None,
+        **kwargs
     ):
         super().__init__(name=name)
         self._args = args
         self._kwargs = kwargs
         self.gate_activation = gate_activation
+        self.add_weighted_range = add_weighted_range
 
     def __call__(self, unscaled_features, gate_features=None):
         if gate_features is None:
             gate_features = unscaled_features
         scale = hk.Linear(1, *self._args, **self._kwargs)(gate_features)
         scale = jnp.squeeze(scale, axis=-1)
-        scale = self.gate_activation(scale)
+        if self.add_weighted_range:
+            range_weight = hk.get_parameter(
+                "range_weight", shape=(), init=jnp.zeros, dtype=scale.dtype
+            )
+            num_scales = scale.shape[-1]
+            scale = scale + range_weight * jnp.linspace(0, 1, num_scales)
+            # id_print(range_weight)
+        if self.gate_activation is not None:
+            scale = self.gate_activation(scale)
+        # id_print(unscaled_features[0, -1, :])
+        # id_print(scale[0])
+        # id_print(unscaled_features[:, -1, 0])
+        # gf = gate_features[:, :, 0]
+        # diff = jnp.abs(gf[:, :-1] - gf[:, 1:])
+        # eps = 1e-4
+        # id_print((diff / (jnp.abs(gf[:, :-1]) + eps)).mean(axis=0))
+        # id_print(
+        #     jnp.linalg.norm(unscaled_features[:, -1, 0])
+        #     / jnp.linalg.norm(unscaled_features[:, -1, 1])
+        # )
         return jnp.einsum("nkl,nk->nl", unscaled_features, scale)
 
 
@@ -71,7 +99,7 @@ class DAGNN(hk.Module):
 
     def __call__(
         self,
-        graph: tp.Union[spax.SparseArray, jnp.ndarray],
+        graph: tp.Union[JAXSparse, jnp.ndarray],
         node_features: jnp.ndarray,
         is_training: bool,
     ):

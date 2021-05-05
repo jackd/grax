@@ -1,4 +1,3 @@
-import typing as tp
 from collections import defaultdict
 from functools import partial
 
@@ -11,19 +10,6 @@ from huf.ray.tune.utils import full_metric_name, get_results
 from huf.types import Modes, Splits
 
 configurable = partial(gin.configurable, module="grax.problems.single.tune")
-
-
-@configurable
-def print_moments(data: tp.Sequence[tp.Mapping[str, float]]):
-    out = defaultdict(list)
-    for d in data:
-        for k, v in d.items():
-            out[k].append(v)
-    for k in sorted(out):
-        v = out[k]
-        mean = np.mean(v)
-        std = np.std(v)
-        print(f"{k} = {mean} +- {std}")
 
 
 def get_best_trials(
@@ -54,7 +40,7 @@ def get_best_trials(
     )[0]
 
 
-@configurable
+@configurable(denylist="analysis")
 def print_best_config_and_results(
     analysis: tune.ExperimentAnalysis,
     objective: Objective = DEFAULT_OBJECTIVE,

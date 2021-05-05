@@ -1,0 +1,14 @@
+import grax.graph_utils.laplacians
+import grax.graph_utils.transforms
+
+graph_transform = [
+    @grax.graph_utils.laplacians.normalized_laplacian,
+    @grax.graph_utils.transforms.linear_transform,
+]
+
+grax.graph_utils.laplacians.normalized_laplacian.return_row_sum = False
+grax.graph_utils.transforms.linear_transform.shift = %shift
+grax.graph_utils.transforms.linear_transform.scale = %scale
+
+shift = 0
+scale = 1

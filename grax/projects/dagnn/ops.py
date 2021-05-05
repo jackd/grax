@@ -1,6 +1,5 @@
 import jax
 import jax.numpy as jnp
-
 from spax.linalg.polynomials import iterate_chebyshev1
 from spax.linalg.utils import ArrayOrFun, as_array_fun
 
@@ -21,7 +20,8 @@ def krylov(a: ArrayOrFun, b, dim: int, normalize: bool = False):
         if normalize:
             b = _normalize(b)
         out.append(b)
-    return jnp.stack(out, axis=1)
+    out = jnp.stack(out, axis=1)
+    return out
 
 
 def lanczos(a: ArrayOrFun, b, dim: int, eps: float = 1e-4):

@@ -1,6 +1,5 @@
 import jax
 import jax.numpy as jnp
-
 from spax import COO
 
 
@@ -21,10 +20,10 @@ def random_adjacency(
         key: `jax.random.PRNGKey`.
         num_nodes: number of nodes in returned graph.
         num_edges: number of random internal edges initially added.
-        dtype: dtype of returned SparseArray.
+        dtype: dtype of returned JAXSparse.
 
     Returns:
-        COO SparseArray, shape (num_nodes, num_nodes), weights all ones.
+        COO, shape (num_nodes, num_nodes), weights all ones.
     """
     shape = num_nodes, num_nodes
 

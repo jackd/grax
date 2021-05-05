@@ -1,14 +1,15 @@
 from functools import partial
 
 import gin
-import jax
-import jax.numpy as jnp
 
 import haiku as hk
+import jax
+import jax.numpy as jnp
 import spax
 from grax.projects.gat import ops as gat_ops
 from huf import initializers
 from huf.module_ops import dropout
+from jax.experimental.sparse_ops import COO
 
 configurable = partial(gin.configurable, module="gat")
 
@@ -29,9 +30,7 @@ class GATConv(hk.Module):
         self.with_bias = with_bias
         self.b_init = b_init
 
-    def __call__(
-        self, graph: spax.SparseArray, node_features: jnp.ndarray, is_training: bool
-    ):
+    def __call__(self, graph: COO, node_features: jnp.ndarray, is_training: bool):
         x = node_features
         del node_features
         x = dropout(x, self.dropout_rate, is_training)
@@ -53,8 +52,7 @@ class GATConv(hk.Module):
         query = jnp.squeeze(query, axis=1)
         key = jnp.squeeze(key, axis=1)
 
-        coords = spax.ops.get_coords(graph)
-        row, col = coords
+        row, col = graph.row, graph.col
 
         query = query[row]
         key = key[col]
@@ -80,7 +78,7 @@ class GATConv(hk.Module):
 #         self.dropout_rate = dropout_rate
 
 #     def __call__(
-#         self, graph: spax.SparseArray, node_features: jnp.ndarray, is_training: bool
+#         self, graph: COO, node_features: jnp.ndarray, is_training: bool
 #     ):
 #         x = dropout(node_features, self.dropout_rate, is_training)
 #         x = hk.Linear(self.filters)(x)
@@ -99,14 +97,13 @@ class GATConv(hk.Module):
 
 #     def __call__(
 #         self,
-#         graph: spax.SparseArray,
+#         graph: JAXSparse,
 #         node_features: jnp.ndarray,
 #         is_training: tp.Optional[bool] = None,
 #     ):
 #         # no initial dropout / dense
 #         # coords = spax.ops.to_coo(graph).coords
-#         coords = spax.ops.get_coords(graph)
-#         row, col = coords
+#         row, col = graph.row, graph.col
 
 #         values = hk.Linear(
 #             (self.filters + 2) * self.num_heads, w_init=initializers.lecun_uniform,
@@ -135,9 +132,7 @@ class MultiHeadGATConv(hk.Module):
         self.num_heads = num_heads
         self._head_fun = partial(GATConv, *args, **kwargs)
 
-    def __call__(
-        self, graph: spax.SparseArray, node_features: jnp.ndarray, is_training: bool
-    ):
+    def __call__(self, graph: COO, node_features: jnp.ndarray, is_training: bool):
         heads = [
             self._head_fun(name=f"head{i}")(graph, node_features, is_training)
             for i in range(self.num_heads)
@@ -164,7 +159,7 @@ class GAT(hk.Module):
         self.dropout_rate = dropout_rate
 
     def __call__(
-        self, graph: spax.SparseArray, node_features: jnp.ndarray, is_training: bool,
+        self, graph: COO, node_features: jnp.ndarray, is_training: bool,
     ):
         # x = dropout(node_features, self.dropout_rate, training)
         # x = hk.Linear(self.hidden_filters)(x)

@@ -2,18 +2,18 @@ import typing as tp
 from functools import partial
 
 import gin
+
 import jax.numpy as jnp
+from jax.experimental.sparse_ops import JAXSparse
+from spax import ops, utils
 
-from spax import SparseArray, ops, utils
-
-T = tp.TypeVar("T", SparseArray, jnp.ndarray)
+T = tp.TypeVar("T", JAXSparse, jnp.ndarray)
 
 configurable = partial(gin.configurable, module="grax.graph_utils.transforms")
 
 
 @configurable
 def row_normalize(x: T, ord=1) -> T:  # pylint: disable=redefined-builtin
-    assert x.ndim == 2
     return ops.scale_rows(x, 1.0 / ops.norm(x, axis=1, ord=ord))
 
 
@@ -25,8 +25,7 @@ def symmetric_normalize(x: T) -> T:
 
 @configurable
 def add_identity(x: T, scale: float = 1.0) -> T:
-    assert x.ndim == 2
-    if utils.is_sparse(x):
+    if isinstance(x, JAXSparse):
         return ops.add(x, ops.mul(utils.eye(x.shape[0], dtype=x.dtype), scale))
     return x + scale * jnp.eye(x.shape[0], dtype=x.dtype)
 
@@ -41,16 +40,14 @@ def linear_transform(x: T, shift: float = 0.0, scale: float = 1.0):
 
 
 @configurable
-def to_format(arr: SparseArray, fmt: str):
+def to_format(arr: JAXSparse, fmt: str):
     if fmt == "coo":
-        return arr.tocoo()
+        return ops.to_coo(arr)
     if fmt == "csr":
-        return arr.tocsr()
-    if fmt == "ell":
-        return arr.toell()
+        return ops.to_csr(arr)
     if fmt == "dense":
-        return arr.todense()
-    raise ValueError(f"`fmt` must be in ('coo', 'csr', 'ell', 'dense'), got {fmt}")
+        return ops.to_dense(arr)
+    raise ValueError(f"`fmt` must be in ('coo', 'csr', 'dense'), got {fmt}")
 
 
 @configurable

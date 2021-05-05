@@ -2,15 +2,15 @@ import typing as tp
 from functools import partial
 
 import gin
-import jax
-import jax.numpy as jnp
 
 import haiku as hk
+import jax
+import jax.numpy as jnp
 from grax.projects.gcn.ops import graph_convolution
 from grax.types import Activation
 from huf import initializers
 from huf.module_ops import dropout
-from spax import SparseArray
+from jax.experimental.sparse_ops import JAXSparse
 
 configurable = partial(gin.configurable, module="gcn")
 
@@ -31,10 +31,7 @@ class GraphConvolution(hk.Module):
         self.bias_initializer = bias_initializer
         super().__init__(name=name)
 
-    def __call__(
-        self, graph: tp.Union[jnp.ndarray, SparseArray], features: jnp.ndarray
-    ):
-        assert graph.ndim == 2, graph.shape
+    def __call__(self, graph: tp.Union[jnp.ndarray, JAXSparse], features: jnp.ndarray):
         assert features.ndim == 2, features.shape
         assert graph.shape[1] == features.shape[0]
         filters_in = features.shape[1]
@@ -85,7 +82,7 @@ class GCN(hk.Module):
 
     def __call__(
         self,
-        graph: tp.Union[jnp.ndarray, SparseArray],
+        graph: tp.Union[jnp.ndarray, JAXSparse],
         node_features: jnp.ndarray,
         is_training: tp.Optional[bool] = None,
     ):

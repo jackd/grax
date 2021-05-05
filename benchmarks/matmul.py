@@ -1,14 +1,13 @@
-import typing as tp
 from functools import partial
 
 import google_benchmark as benchmark
+
 import jax
 import jax.numpy as jnp
-from jax.config import config
-
 import spax
 from grax.graph_utils import laplacians
 from grax.problems.single import data
+from jax.config import config
 
 config.parse_flags_with_absl()
 config.update("jax_enable_x64", True)
@@ -20,9 +19,9 @@ data_cache = {}
 def load_data(name="pub_med"):
     if name in data_cache:
         return data_cache[name]
-    data = data.citations_data(name)
-    data_cache[name] = data
-    return data
+    res = data.citations_data(name)
+    data_cache[name] = res
+    return res
 
 
 def matmul_benchmark(
@@ -30,7 +29,7 @@ def matmul_benchmark(
     fmt,
     data_name: str,
     num_vecs: int = 8,
-    backend: tp.Optional[str] = "cpu",
+    backend: str = "cpu",
     dtype=jnp.float32,
     seed: int = 0,
 ):
@@ -43,27 +42,28 @@ def matmul_benchmark(
     if dtype != a.dtype:
         a = spax.ops.with_data(a, a.data.astype(dtype))
     if fmt == "coo":
-        a = a.tocoo()
+        a = spax.ops.to_coo(a)
     elif fmt == "csr":
-        a = a.tocsr()
+        a = spax.ops.to_csr(a)
     else:
         raise NotImplementedError(f"fmt '{fmt}' not supported")
 
+    @partial(jax.jit, backend=backend)
     def fun(a, b):
-        return spax.ops.matmul(a, b)
-
-    if backend:
-        fun = jax.jit(fun, backend=backend)
+        return a @ b
 
     fun(a, b).block_until_ready()  # ensure jit has finished
     while state:
         fun(a, b).block_until_ready()
 
 
-for data_name in ("pub_med", "cite_seer", "cora"):
+datasets = ("pub_med", "cite_seer", "cora")
+# preload datasets to avoid spam later
+for data_name in datasets:
+    load_data(data_name)
+for data_name in datasets:
     for dtype, dtype_str in ((jnp.float32, "f32"), (jnp.float64, "f64")):
-        for backend in (None, "cpu", "gpu"):
-            backend_str = "nojit" if backend is None else backend
+        for backend in ("cpu", "gpu"):
             for fmt in "csr", "coo":
                 benchmark.register(
                     partial(
@@ -73,7 +73,7 @@ for data_name in ("pub_med", "cite_seer", "cora"):
                         backend=backend,
                         data_name=data_name,
                     ),
-                    name="-".join((data_name, dtype_str, backend_str, fmt)),
+                    name="-".join((data_name, dtype_str, backend, fmt)),
                 )
 
 

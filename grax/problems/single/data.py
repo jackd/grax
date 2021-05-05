@@ -3,12 +3,12 @@ from dataclasses import dataclass
 from functools import partial
 
 import gin
-import jax
-import jax.numpy as jnp
 import networkx as nx
 import tensorflow as tf
 import tensorflow_datasets as tfds
 
+import jax
+import jax.numpy as jnp
 from graph_tfds.graphs import (  # pylint: disable=unused-import
     amazon,
     cite_seer,
@@ -16,9 +16,11 @@ from graph_tfds.graphs import (  # pylint: disable=unused-import
     cora,
     pub_med,
 )
+from grax.graph_utils import laplacians, transforms
 from grax.problems.single.splits import split_by_class
 from huf.types import PRNGKey
-from spax import COO, SparseArray, ops
+from jax.experimental.sparse_ops import COO, JAXSparse
+from spax import ops
 
 configurable = partial(gin.configurable, module="grax.problems.single")
 
@@ -34,26 +36,23 @@ def ids_to_mask(ids: jnp.ndarray, size: int, dtype=bool):
 class SemiSupervisedSingle:
     """Data class for a single sparsely labelled graph."""
 
-    node_features: tp.Union[jnp.ndarray, SparseArray]  # [N, F]
-    graph: SparseArray  # [N, N]
+    node_features: tp.Union[
+        jnp.ndarray, JAXSparse,
+    ]  # [N, F]
+    graph: JAXSparse  # [N, N]
     labels: jnp.ndarray  # [N]
     train_ids: tp.Optional[jnp.ndarray]  # [n_train << N]
     validation_ids: tp.Optional[jnp.ndarray]  # [n_eval < N]
     test_ids: tp.Optional[jnp.ndarray]  # [n_test < N]
 
     def __post_init__(self):
-        assert self.node_features.ndim == 2, self.node_features.shape
-        assert jnp.issubdtype(
-            self.node_features.dtype, jnp.floating
-        ), self.node_features.dtype
-
         for ids in (self.train_ids, self.validation_ids, self.test_ids):
             assert ids is None or ids.ndim == 1, ids.shape
             assert ids is None or jnp.issubdtype(ids.dtype, jnp.integer), ids.dtype
 
     @property
     def num_nodes(self) -> int:
-        return self.node_features.shape[0]
+        return self.graph.shape[0]
 
     @property
     def num_edges(self) -> int:
@@ -91,7 +90,39 @@ class SemiSupervisedSingle:
         return int(self.labels.max()) + 1
 
 
-def subgraph(single: SemiSupervisedSingle, indices: jnp.ndarray):
+@configurable
+def symmetric_normalize_with_row_sum(single: SemiSupervisedSingle):
+    rs = ops.norm(single.graph, axis=1, ord=1)
+    factor = jnp.where(rs == 0, jnp.zeros_like(rs), 1.0 / jnp.sqrt(rs))
+    graph = ops.scale_columns(ops.scale_rows(single.graph, factor), factor)
+    return SemiSupervisedSingle(
+        (rs, single.node_features),
+        graph,
+        single.labels,
+        single.train_ids,
+        single.validation_ids,
+        single.test_ids,
+    )
+
+
+@configurable
+def symmetric_normalize_laplacian_with_row_sum(
+    single: SemiSupervisedSingle, shift: float = 0.0, scale: float = 1.0
+):
+    laplacian, rs = laplacians.normalized_laplacian(single.graph)
+    return SemiSupervisedSingle(
+        (rs, single.node_features),
+        transforms.linear_transform(laplacian, shift=shift, scale=scale),
+        single.labels,
+        single.train_ids,
+        single.validation_ids,
+        single.test_ids,
+    )
+
+
+def subgraph(
+    single: SemiSupervisedSingle, indices: jnp.ndarray
+) -> SemiSupervisedSingle:
     indices = jnp.asarray(indices, jnp.int32)
     assert indices.ndim == 1, indices.shape
     index_dtype = indices.dtype
@@ -100,7 +131,7 @@ def subgraph(single: SemiSupervisedSingle, indices: jnp.ndarray):
     adj = ops.gather(ops.gather(single.graph, indices, axis=0), indices, axis=1)
 
     node_features = single.node_features
-    if isinstance(node_features, SparseArray):
+    if isinstance(node_features, JAXSparse):
         node_features = ops.gather(node_features, indices, axis=0)
     else:
         node_features = node_features[indices]
@@ -124,7 +155,9 @@ def subgraph(single: SemiSupervisedSingle, indices: jnp.ndarray):
     )
 
 
-def get_largest_component_indices(graph: COO, dtype: jnp.dtype = jnp.int32):
+def get_largest_component_indices(
+    graph: COO, dtype: jnp.dtype = jnp.int32
+) -> SemiSupervisedSingle:
     # create nx graph
     g = nx.Graph()
     for u, v in graph.tocoo().coords.T:
@@ -168,12 +201,12 @@ def citations_data(name: str = "cora") -> SemiSupervisedSingle:
     element = tf.data.experimental.get_single_element(dataset)
     graph = element["graph"]
     features = graph["node_features"]
-    coords = graph["links"].numpy().T
-    graph = COO(coords, jnp.ones((coords.shape[1],), dtype=jnp.float32))
+    row, col = graph["links"].numpy().T
+    n = features.shape[0]
+    graph = COO((jnp.ones(row.shape, dtype=jnp.float32), row, col), shape=(n, n))
     if isinstance(features, tf.SparseTensor):
-        features = COO(
-            features.indices.numpy().T, features.values.numpy(), tuple(features.shape)
-        )
+        row, col = features.indices.numpy().T
+        features = COO((features.values.numpy(), row, col), shape=features.shape)
     else:
         features = jnp.asarray(features.numpy())
     labels, train_ids, validation_ids, test_ids = (
@@ -264,7 +297,7 @@ def graph_transform(transform_fun: tp.Callable):
 
 
 SingleTransform = tp.Callable[[SemiSupervisedSingle], SemiSupervisedSingle]
-GraphTransform = tp.Callable[[SparseArray], SparseArray]
+GraphTransform = tp.Callable[[JAXSparse], JAXSparse]
 FeatureTransform = tp.Callable[[jnp.ndarray], jnp.ndarray]
 
 

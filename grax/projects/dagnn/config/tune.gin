@@ -1,7 +1,7 @@
 import grax.config
 import huf.ray.tune.configurables
 
-include "grax_config/single/fit_many.gin"
+include "grax_config/single/ray/fit_many.gin"
 
 dropout_rate = @ray.tune.grid_search()
 weight_decay = @ray.tune.grid_search()

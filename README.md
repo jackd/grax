@@ -44,6 +44,8 @@ seed=1
 '
 # perform multiple runs
 python -m grax grax_config/single/fit_many.gin gcn/config/pub_med.gin
+# perform multiple runs with ray
+python -m grax grax_config/single/ray/fit_many.gin gcn/config/pub_med.gin
 ```
 
 ## Pre-commit

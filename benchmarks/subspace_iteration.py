@@ -2,13 +2,13 @@ from functools import partial
 from typing import Callable
 
 import google_benchmark as benchmark
+from absl import flags
+
 import jax
 import jax.numpy as jnp
-from absl import flags
-from jax.config import config
-
 from grax.data import laplacians as lap
 from grax.data import single
+from jax.config import config
 from spax.linalg import subspace_iteration as si
 from spax.types import ArrayOrFun
 

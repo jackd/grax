@@ -1,15 +1,15 @@
 import jax
 import jax.numpy as jnp
-
 import spax
+from jax.experimental.sparse_ops import JAXSparse
 
 
-def graph_conv(graph: spax.SparseArray, graph_data: jnp.ndarray, values: jnp.ndarray):
-    return spax.ops.matmul(spax.ops.with_data(graph, graph_data), values)
+def graph_conv(graph: JAXSparse, graph_data: jnp.ndarray, values: jnp.ndarray):
+    return spax.ops.with_data(graph, graph_data) @ values
 
 
 def multi_head_graph_conv(
-    graph: spax.SparseArray, graph_data: jnp.ndarray, values: jnp.ndarray
+    graph: JAXSparse, graph_data: jnp.ndarray, values: jnp.ndarray
 ):
     """
     Args:

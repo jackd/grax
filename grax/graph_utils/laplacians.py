@@ -2,10 +2,10 @@ import typing as tp
 from functools import partial
 
 import gin
-import jax.numpy as jnp
 
+import jax.numpy as jnp
+from jax.experimental.sparse_ops import JAXSparse
 from spax import ops
-from spax.sparse import SparseArray
 from spax.utils import diag, eye
 
 configurable = partial(gin.configurable, module="grax.graph_utils.laplacians")
@@ -13,8 +13,8 @@ configurable = partial(gin.configurable, module="grax.graph_utils.laplacians")
 
 @configurable
 def laplacian(
-    adj: SparseArray, shift: float = 0.0, return_row_sum=True,
-) -> tp.Tuple[SparseArray, jnp.ndarray]:
+    adj: JAXSparse, shift: float = 0.0, return_row_sum=True,
+) -> tp.Tuple[JAXSparse, jnp.ndarray]:
     """
     Get a possibly shifted Laplacian matrix.
 
@@ -40,8 +40,8 @@ def laplacian(
 
 @configurable
 def normalized_laplacian(
-    adj: tp.Union[SparseArray, jnp.ndarray], shift: float = 0.0, return_row_sum=True
-) -> tp.Tuple[SparseArray, jnp.ndarray]:
+    adj: tp.Union[JAXSparse, jnp.ndarray], shift: float = 0.0, return_row_sum=True
+) -> tp.Union[JAXSparse, tp.Tuple[JAXSparse, jnp.ndarray]]:
     """
     Get a possibly-shifted normalized laplacian matrix.
 

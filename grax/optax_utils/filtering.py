@@ -2,10 +2,10 @@ import typing as tp
 from functools import partial
 
 import gin
-import jax.numpy as jnp
-import optax
 
 import haiku as hk
+import jax.numpy as jnp
+import optax
 
 configurable = partial(gin.configurable, module="grax.optax_utils")
 

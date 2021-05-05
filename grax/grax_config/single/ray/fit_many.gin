@@ -1,0 +1,11 @@
+import huf.ray.tune.configurables
+
+include "grax_config/single/tune.gin"
+
+seed = @ray.tune.grid_search()
+seed/ray.tune.grid_search.values = @seed/list()
+seed/list.iterable = @seed/range()
+seed/range.start_or_stop = %num_repeats
+num_repeats = 10
+
+tune_config = {"seed": %seed}

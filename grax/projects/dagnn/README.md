@@ -24,7 +24,7 @@ python -m grax grax_config/single/fit.gin config/pub_med.gin
 ```
 
 ```bash
-python -m grax grax_config/single/fit_many.gin config/pub_med.gin --bindings="gpus_per_trial=0.24"
+python -m grax grax_config/single/fit_many.gin config/pub_med.gin
 ```
 
 ```txt
@@ -37,7 +37,7 @@ val_loss   = 0.49105267226696014 +- 0.007322429980614146
 ```
 
 ```bash
-python -m grax config/pub_med.gin config/tune.gin --bindings="gpus_per_trial=0.24"
+python -m grax config/pub_med.gin config/tune.gin
 ```
 
 ```txt
@@ -56,21 +56,21 @@ val_loss   = 0.5351846814155579 +- 0.004810290118452045
 
 ## Results
 
-|Dataset   |Dropout|Weight Decay|Propagations|Single (%)|10-runs (%)  |Reported (%)|
-|----------|-------|------------|------------|----------|-------------|------------|
-|CiteSeer  |    0.5|        2e-2|          10|     73.80|73.12 +- 0.74| 73.3 +- 0.6|
-|CiteSeer* |    0.8|        2e-2|          20|     72.80|73.23 +- 0.49|            |
-|Cora      |    0.8|        5e-3|          10|     84.20|84.29 +- 0.56| 84.4 +- 0.5|
-|Cora*     |    0.5|        5e-3|          10|     84.00|83.38 +- 0.61|            |
-|PubMed    |    0.8|        5e-3|          20|     79.80|80.06 +- 0.31| 80.5 +- 0.5|
-|PubMed*   |    0.8|        2e-2|          20|     80.90|80.19 +- 0.39|            |
-|CS        |    0.8|           0|           5|     93.19|93.18 +- 0.17| 92.8 +- 0.9|
-|CS*       |       |            |            |          |             |            |
-|Physics   |    0.8|           0|           5|     94.31|94.08 +- 0.19| 94.0 +- 0.6|
-|Physics*  |       |            |            |          |             |            |
-|Computers |    0.5|        5e-5|           5|     85.96|85.59 +- 0.42| 84.5 +- 1.2|
-|Computers*|       |            |            |          |             |            |
-|Photo     |    0.5|        5e-4|           5|     92.78|92.77 +- 0.28| 92.0 +- 0.8|
-|Photo*    |       |            |            |          |             |            |
+|Dataset    |Dropout|Weight Decay|Propagations|Single (%)|10-runs (%)  |Reported (%)|
+|-----------|-------|------------|------------|----------|-------------|------------|
+|CiteSeer   |    0.5|        2e-2|          10|     73.80|73.12 +- 0.74| 73.3 +- 0.6|
+|CiteSeer*  |    0.8|            |          20|     72.80|73.23 +- 0.49|            |
+|Cora       |    0.8|        5e-3|          10|     84.20|84.29 +- 0.56| 84.4 +- 0.5|
+|Cora*      |    0.5|            |          10|     84.00|83.38 +- 0.61|            |
+|PubMed     |    0.8|        5e-3|          20|     79.80|80.06 +- 0.31| 80.5 +- 0.5|
+|PubMed*    |       |        2e-2|            |     80.90|80.19 +- 0.39|            |
+|CS         |    0.8|           0|           5|     93.19|93.18 +- 0.17| 92.8 +- 0.9|
+|CS*        |       |        5e-4|            |     93.42|93.17 +- 0.17|            |
+|Physics    |    0.8|           0|           5|     94.31|94.08 +- 0.19| 94.0 +- 0.6|
+|Physics*   |       |            |            |          |             |            |
+|Computers**|    0.5|        5e-5|           5|     85.96|85.59 +- 0.42| 84.5 +- 1.2|
+|Photo      |    0.5|        5e-4|           5|     92.78|92.77 +- 0.28| 92.0 +- 0.8|
+|Photo*     |       |            |            |          |             |            |
 
 *: configurations based on our own hyperparameter search. Others use hyperparameters from the original implementation.
+**: Our own hyperparameter search gives results consistent with the original implementation.
