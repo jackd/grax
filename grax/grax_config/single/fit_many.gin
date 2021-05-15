@@ -8,25 +8,21 @@ import huf.config
 import huf.configurables
 
 include "huf_config/models/base.gin"
-include "huf_config/models/classifier.gin"
+include "grax_config/single/base.gin"
 
-net_transform = @grax.problems.single.semi_supervised_net_fun
-grax.problems.single.semi_supervised_net_fun.module_fun = %module_fun
-
-huf.cli.main.fun = @grax.problems.single.fit_many_semi_supervised
+huf.cli.main.fun = @grax.huf_utils.fit_many
 huf.cli.main.callbacks = [@huf.experiments.LambdaCallback()]
 
-huf.experiments.LambdaCallback.on_done = @grax.problems.single.print_moments
-grax.problems.single.fit_many_semi_supervised.num_repeats = %num_repeats
-grax.problems.single.fit_many_semi_supervised.experiment_callbacks = [@huf.experiments.Logger()]
-grax.problems.single.fit_many_semi_supervised.rng = %seed
-grax.problems.single.fit_many_semi_supervised.model = %model
-grax.problems.single.fit_many_semi_supervised.data = %data
-grax.problems.single.fit_many_semi_supervised.steps = %steps
-grax.problems.single.fit_many_semi_supervised.callbacks = %callbacks
-grax.problems.single.fit_many_semi_supervised.dtype = %dtype
+huf.experiments.LambdaCallback.on_done = @grax.huf_utils.print_moments
+grax.huf_utils.fit_many.data = %fit_data
+grax.huf_utils.fit_many.num_repeats = %num_repeats
+grax.huf_utils.fit_many.experiment_callbacks = [@huf.experiments.Logger()]
+grax.huf_utils.fit_many.rng = %seed
+grax.huf_utils.fit_many.epochs = %steps
+grax.huf_utils.fit_many.callbacks = %callbacks
 
-num_repeats = 10
+grax.huf_utils.print_moments.skip = 1  # make timing accurate
+num_repeats = 11
 
 dtype = "float32"
 

@@ -1,5 +1,5 @@
 import grax.config
 
 include "grax_config/single/data/dgl.gin"
-data_name = "cora"
-num_classes = 7
+data_name = "citeseer"
+num_classes = 6

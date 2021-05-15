@@ -1,21 +1,14 @@
+import os
 import typing as tp
 from dataclasses import dataclass
 from functools import partial
 
 import gin
 import networkx as nx
-import tensorflow as tf
-import tensorflow_datasets as tfds
 
 import jax
 import jax.numpy as jnp
-from graph_tfds.graphs import (  # pylint: disable=unused-import
-    amazon,
-    cite_seer,
-    coauthor,
-    cora,
-    pub_med,
-)
+import spax
 from grax.graph_utils import laplacians, transforms
 from grax.problems.single.splits import split_by_class
 from huf.types import PRNGKey
@@ -160,10 +153,12 @@ def get_largest_component_indices(
 ) -> SemiSupervisedSingle:
     # create nx graph
     g = nx.Graph()
-    for u, v in graph.tocoo().coords.T:
+    graph = spax.ops.to_coo(graph)
+    coords = jnp.stack((graph.row, graph.col), axis=1)
+    for u, v in coords:
         g.add_edge(u, v)
     if nx.is_connected(g):
-        return jnp.arange(graph.coords.shape[1], dtype=dtype)
+        return jnp.arange(graph.row.size, dtype=dtype)
     # enumerate used for tie-breaking purposes
     _, _, component = max(
         ((len(c), i, c) for i, c in enumerate(nx.connected_components(g)))
@@ -176,52 +171,120 @@ def get_largest_component(single: SemiSupervisedSingle):
     return subgraph(single, get_largest_component_indices(single.graph))
 
 
+def _load_dgl_graph(dgl_example):
+    row, col = (x.numpy() for x in dgl_example.edges())
+    return COO(
+        (jnp.ones(row.shape, dtype=jnp.float32), row, col),
+        shape=(dgl_example.num_nodes(),) * 2,
+    )
+
+
+def _load_dgl_example(dgl_example):
+    feat, label, train_mask, test_mask = (
+        dgl_example.ndata[k].numpy()
+        for k in ("feat", "label", "train_mask", "test_mask")
+    )
+    valid_mask = dgl_example.ndata[
+        "val_mask" if "val_mask" in dgl_example.ndata else "valid_mask"
+    ].numpy()
+    # row, col = (x.numpy() for x in dgl_example.edges())
+    # n = feat.shape[0]
+    # graph = COO((jnp.ones(row.shape, dtype=jnp.float32), row, col), shape=(n, n))
+    graph = _load_dgl_graph(dgl_example)
+    train_ids, validation_ids, test_ids = (
+        jnp.where(mask)[0] for mask in (train_mask, valid_mask, test_mask)
+    )
+    label = jnp.asarray(label)
+
+    return SemiSupervisedSingle(feat, graph, label, train_ids, validation_ids, test_ids)
+
+
+def _get_dir(data_dir: tp.Optional[str], environ: str, default: tp.Optional[str]):
+    if data_dir is None:
+        data_dir = os.environ.get(environ, default)
+    if data_dir is None:
+        return None
+    return os.path.expanduser(os.path.expandvars(data_dir))
+
+
 @configurable
-def citations_data(name: str = "cora") -> SemiSupervisedSingle:
-    """
-    Get semi-supervised citations data.
+def dgl_data(name: str, data_dir: tp.Optional[str] = None):
+    import dgl  # pylint: disable=import-outside-toplevel
 
-    Args:
-        name: one of "cora", "cite_seer", "pub_med", or a registered tfds builder name
-            with the same element spec.
+    raw_dir = _get_dir(data_dir, "DGL_DATA", None)
 
-    Returns:
-        `SemiSupervisedSingle`. The graph matrix has forward/back edges but no self
-            edges and uniform weights of `1.0`.
-    """
-    dataset = tfds.load(name)
-    if isinstance(dataset, dict):
-        if len(dataset) == 1:
-            (dataset,) = dataset.values()
-        else:
-            raise ValueError(
-                f"tfds builder {name} had more than 1 split ({sorted(dataset.keys())})."
-                " Please use 'name/split'"
-            )
-    element = tf.data.experimental.get_single_element(dataset)
-    graph = element["graph"]
-    features = graph["node_features"]
-    row, col = graph["links"].numpy().T
-    n = features.shape[0]
-    graph = COO((jnp.ones(row.shape, dtype=jnp.float32), row, col), shape=(n, n))
-    if isinstance(features, tf.SparseTensor):
-        row, col = features.indices.numpy().T
-        features = COO((features.values.numpy(), row, col), shape=features.shape)
+    if name == "cora":
+        ds = dgl.data.CoraGraphDataset(raw_dir=raw_dir)
+    elif name == "pubmed":
+        ds = dgl.data.PubmedGraphDataset(raw_dir=raw_dir)
+    elif name == "citeseer":
+        ds = dgl.data.CiteseerGraphDataset(raw_dir=raw_dir)
+    # elif name == "amazon-computers":
+    #     ds = dgl.data.AmazonCoBuyComputerDataset()
+    # elif name == "amazon-photo":
+    #     ds = dgl.data.AmazonCoBuyPhotoDataset()
+    # elif name == "coauthor-physics":
+    #     ds = dgl.data.CoauthorPhysicsDataset()
+    # elif name == "coauthor-cs":
+    #     ds = dgl.data.CoauthorCSDataset()
     else:
-        features = jnp.asarray(features.numpy())
-    labels, train_ids, validation_ids, test_ids = (
-        jnp.asarray(element[k])
-        for k in ("node_labels", "train_ids", "validation_ids", "test_ids")
-    )
+        raise ValueError(f"Unrecognized name {name}")
+    return _load_dgl_example(ds[0])
 
-    return SemiSupervisedSingle(
-        features, graph, labels, train_ids, validation_ids, test_ids
+
+def _ogbn_arxiv_example(root_dir: str):
+    import ogb.nodeproppred  # pylint: disable=import-outside-toplevel
+
+    example, labels = ogb.nodeproppred.DglNodePropPredDataset(
+        "ogbn-arxiv", root=root_dir
+    )[0]
+    assert not any(
+        k in example.ndata for k in ("label", "train_mask", "valid_mask", "test_mask")
     )
+    year = jnp.squeeze(example.ndata.pop("year").numpy(), axis=1)
+    labels = jnp.squeeze(labels.numpy(), axis=1)
+    train_mask = year <= 2017
+    valid_mask = year == 2018
+    test_mask = year >= 2019
+    train_ids, valid_ids, test_ids = (
+        jnp.where(mask)[0] for mask in (train_mask, valid_mask, test_mask)
+    )
+    feat = example.ndata["feat"]
+    graph = _load_dgl_graph(example)
+    with jax.experimental.enable_x64():
+        graph = spax.ops.add(graph, graph.T)
+    data = SemiSupervisedSingle(
+        jnp.asarray(feat, dtype=jnp.float32),
+        graph,
+        labels,
+        train_ids,
+        valid_ids,
+        test_ids,
+    )
+    return data
 
 
 @configurable
-def pitfalls_data(name: str = "amazon/computers"):
-    dataset = tfds.load(name)
+def ogbn_data(name: str, data_dir: tp.Optional[str] = None):
+    if name == "arxiv":
+        return _ogbn_arxiv_example(root_dir=_get_dir(data_dir, "OGB_DATA", "~/ogb"))
+
+    raise NotImplementedError(f"dataset ogbn-{name} not implemented yet")
+
+
+@configurable
+def pitfalls_data(name: str = "amazon/computers", data_dir: tp.Optional[str] = None):
+    # pylint: disable=import-outside-toplevel
+    import tensorflow as tf
+    import tensorflow_datasets as tfds
+    from graph_tfds.graphs import (  # pylint: disable=unused-import
+        amazon,
+        coauthor,
+    )
+
+    # pylint: enable=import-outside-toplevel
+
+    dataset = tfds.load(name, data_dir=_get_dir(data_dir, "TFDS_DATA", None))
     if isinstance(dataset, dict):
         if len(dataset) == 1:
             (dataset,) = dataset.values()
@@ -236,19 +299,21 @@ def pitfalls_data(name: str = "amazon/computers"):
     num_nodes = int(features.shape[0])
     coords = graph["links"].numpy().T
     row, col = coords
-    coords = coords[:, row != col]  # remove self-loops
+    valid = row != col
+    row = row[valid]
+    col = col[valid]
     graph = COO(
-        coords,
-        jnp.ones((coords.shape[1],), dtype=jnp.float32),
+        (jnp.ones(row.shape, dtype=jnp.float32), row, col),
         shape=(num_nodes, num_nodes),
     )
     # add reverse edges
-    graph = ops.add(graph, ops.transpose(graph))
+    graph = ops.add(graph, graph.T)
     labels = jnp.asarray(element["node_labels"].numpy())
 
     if isinstance(features, tf.SparseTensor):
+        row, col = features.indices.numpy().T
         features = COO(
-            features.indices.numpy().T, features.values.numpy(), tuple(features.shape),
+            (features.values.numpy(), row, col), shape=tuple(features.shape),
         )
     else:
         features = jnp.asarray(features.numpy())
@@ -340,12 +405,13 @@ def transformed_simple(
     - node_features_transform
     - transform
     """
-    if largest_component:
-        base = get_largest_component(base)
-    for t in as_iterable(graph_transform):
-        base = apply_graph_transform(base, t)
-    for t in as_iterable(node_features_transform):
-        base = apply_node_features_transform(base, t)
-    for t in as_iterable(transform):
-        base = t(base)
+    with jax.experimental.enable_x64():
+        if largest_component:
+            base = get_largest_component(base)
+        for t in as_iterable(graph_transform):
+            base = apply_graph_transform(base, t)
+        for t in as_iterable(node_features_transform):
+            base = apply_node_features_transform(base, t)
+        for t in as_iterable(transform):
+            base = t(base)
     return base

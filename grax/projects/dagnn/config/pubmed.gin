@@ -1,6 +1,6 @@
 import grax.config
 
-include "grax_config/single/data/pub_med.gin"
+include "grax_config/single/data/pubmed.gin"
 include "dagnn/config/base.gin"
 
 weight_decay = 5e-3

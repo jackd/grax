@@ -1,0 +1,5 @@
+import grax.config
+
+include "grax_config/single/data/base.gin"
+base_data = @grax.problems.single.ogbn_data()
+grax.problems.single.ogbn_data.name = %data_name

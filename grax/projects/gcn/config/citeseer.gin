@@ -1,4 +1,4 @@
 import grax.config
 
-include "grax_config/single/data/cite_seer.gin"
+include "grax_config/single/data/citeseer.gin"
 include "gcn/config/base.gin"

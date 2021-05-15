@@ -1,0 +1,6 @@
+import grax.config
+
+include "grax_config/single/data/base.gin"
+base_data = @grax.problems.single.dgl_data()
+
+grax.problems.single.dgl_data.name = %data_name

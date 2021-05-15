@@ -6,8 +6,7 @@ Example config file:
 ```gin
 import grax.config
 include "grax_config/single/fit.gin"
-include "grax_config/single/data/pub_med.gin"
-include "gat/configs/pub_med.gin"
+include "gat/configs/pubmed.gin"
 ```
 
 """

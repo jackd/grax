@@ -1,0 +1,7 @@
+import grax.config
+
+include "grax_config/single/data/pubmed.gin"
+include "igcn/config/fitters/preprocessed.gin"
+
+weight_decay = 5e-3
+dropout_rate = 0.8

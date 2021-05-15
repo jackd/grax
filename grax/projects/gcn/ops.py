@@ -6,11 +6,12 @@ from jax.experimental.sparse_ops import JAXSparse
 
 def graph_convolution(
     graph: tp.Union[jnp.ndarray, JAXSparse],
-    features: jnp.ndarray,
+    features: tp.Union[jnp.ndarray, JAXSparse],
     kernel: jnp.ndarray,
     transform_first: tp.Optional[bool] = None,
 ) -> jnp.ndarray:
-    assert features.ndim == 2, features.shape
+    assert len(graph.shape) == 2, graph.shape
+    assert len(features.shape) == 2, features.shape
     assert kernel.ndim == 2, kernel.shape
     assert graph.shape[1] == features.shape[0], (graph.shape, features.shape)
     assert features.shape[1] == kernel.shape[0], (features.shape, kernel.shape)

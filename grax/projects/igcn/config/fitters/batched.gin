@@ -1,0 +1,13 @@
+import grax.config
+import grax.projects.igcn.fitters
+
+include "igcn/config/fitters/base.gin"
+
+fit_data = @igcn.batched_fit_data()
+
+igcn.batched_fit_data.model = %model
+igcn.batched_fit_data.data = %data
+igcn.batched_fit_data.eps = %eps
+igcn.batched_fit_data.tol = %tol
+igcn.batched_fit_data.labels_per_batch = %labels_per_batch
+igcn.batched_fit_data.nodes_per_batch = %nodes_per_batch

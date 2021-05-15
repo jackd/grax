@@ -8,9 +8,7 @@ grax.problems.single.transformed_simple.largest_component = %largest_component
 grax.problems.single.transformed_simple.transform = %transform
 
 largest_component = False
-graph_transform = None
-node_features_transform = None
+graph_transform = ()
+node_features_transform = ()
 fmt = None
 transform = ()
-
-grax.problems.single.citations_data.name = %data_name

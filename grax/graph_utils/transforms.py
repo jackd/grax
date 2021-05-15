@@ -14,6 +14,9 @@ configurable = partial(gin.configurable, module="grax.graph_utils.transforms")
 
 @configurable
 def row_normalize(x: T, ord=1) -> T:  # pylint: disable=redefined-builtin
+    if isinstance(x, jnp.ndarray):
+        norm = jnp.linalg.norm(x, axis=1, ord=ord, keepdims=True)
+        return jnp.where(norm == 0, jnp.zeros_like(x), x / norm)
     return ops.scale_rows(x, 1.0 / ops.norm(x, axis=1, ord=ord))
 
 

@@ -31,8 +31,12 @@ class GraphConvolution(hk.Module):
         self.bias_initializer = bias_initializer
         super().__init__(name=name)
 
-    def __call__(self, graph: tp.Union[jnp.ndarray, JAXSparse], features: jnp.ndarray):
-        assert features.ndim == 2, features.shape
+    def __call__(
+        self,
+        graph: tp.Union[jnp.ndarray, JAXSparse],
+        features: tp.Union[jnp.ndarray, JAXSparse],
+    ) -> jnp.ndarray:
+        assert len(features.shape) == 2, features.shape
         assert graph.shape[1] == features.shape[0]
         filters_in = features.shape[1]
         filters_out = int(self.filters)

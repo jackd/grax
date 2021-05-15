@@ -1,10 +1,10 @@
 import grax.config
 
 include "grax_config/single/data/cs.gin"
-include "dagnn/config/base.gin"
-
-grax.graph_utils.transforms.to_format.fmt = "coo"
+include "igcn/config/fitters/preprocessed.gin"
 
 weight_decay = 0
 dropout_rate = 0.8
 num_propagations = 5
+
+grax.graph_utils.transforms.to_format.fmt = "coo"

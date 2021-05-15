@@ -16,7 +16,7 @@
 ## Examples
 
 ```bash
-python -m grax grax_config/single/fit.gin config/pub_med.gin
+python -m grax grax_config/single/fit.gin config/pubmed.gin
 ```
 
 ```txt
@@ -24,7 +24,7 @@ python -m grax grax_config/single/fit.gin config/pub_med.gin
 ```
 
 ```bash
-python -m grax grax_config/single/fit_many.gin config/pub_med.gin
+python -m grax grax_config/single/fit_many.gin config/pubmed.gin
 ```
 
 ```txt
@@ -37,7 +37,7 @@ val_loss   = 0.49105267226696014 +- 0.007322429980614146
 ```
 
 ```bash
-python -m grax config/pub_med.gin config/tune.gin
+python -m grax config/pubmed.gin config/tune.gin
 ```
 
 ```txt

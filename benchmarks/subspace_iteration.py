@@ -6,9 +6,10 @@ from absl import flags
 
 import jax
 import jax.numpy as jnp
-from grax.data import laplacians as lap
-from grax.data import single
+from grax.graph_utils import laplacians as lap
+from grax.problems.single.data import dgl_data, get_largest_component
 from jax.config import config
+from spax.linalg import eigh_jvp
 from spax.linalg import subspace_iteration as si
 from spax.types import ArrayOrFun
 
@@ -24,7 +25,7 @@ flags.DEFINE_integer("k", default=4, help="number of extreme eigenpairs to find"
 flags.DEFINE_integer("seed", default=0, help="seed used for initial solution")
 flags.DEFINE_float("tol", default=None, help="tolerance")
 flags.DEFINE_string("dtype", default="float32", help="data type to use")
-flags.DEFINE_string("data", default="pub_med", help="data name")
+flags.DEFINE_string("data", default="pubmed", help="data name")
 
 FLAGS = flags.FLAGS
 
@@ -41,9 +42,9 @@ def get_citations_inputs(name):
     if name in _cache:
         return _cache[name]
 
-    # pub_med: 19717 nodes, 108365 edges
-    data = single.citations_data(name=name)
-    data = single.get_largest_component(single)
+    # pubmed: 19717 nodes, 108365 edges
+    data = dgl_data(name=name)
+    data = get_largest_component(data)
     _cache[name] = data
     return data
 
@@ -63,7 +64,7 @@ def _benchmark_subspace_iteration_method(
             grad_w = jnp.ones_like(w)
             grad_v = jnp.ones_like(v)
             x0 = jax.random.normal(keys[2], shape=v.shape, dtype=v.dtype)
-            grad_data, _ = cg.eigh_partial_rev(
+            grad_data, _ = eigh_jvp.eigh_partial_rev(
                 grad_w,
                 grad_v,
                 w,

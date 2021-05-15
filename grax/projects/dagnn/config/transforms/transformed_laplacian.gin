@@ -1,4 +1,4 @@
-include "dagnn2/config/transforms/laplacian.gin"
+include "dagnn/config/transforms/laplacian.gin"
 
 shift = 2.0
 scale = -2.0

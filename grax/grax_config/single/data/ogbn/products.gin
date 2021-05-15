@@ -1,0 +1,6 @@
+import grax.config
+
+include "grax_config/single/data/ogbn/base.gin"
+
+data_name = "products"
+num_classes = 47

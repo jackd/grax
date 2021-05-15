@@ -1,6 +1,6 @@
 import grax.config
 
-include "grax_config/single/data/cite_seer.gin"
+include "grax_config/single/data/citeseer.gin"
 include "gat/config/base.gin"
 
 weight_decay = 5e-4

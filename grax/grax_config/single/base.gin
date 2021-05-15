@@ -1,0 +1,11 @@
+import grax.huf_utils
+import grax.problems.single.fit
+
+include "huf_config/models/classifier.gin"
+net_transform = @grax.huf_utils.module_call
+grax.huf_utils.module_call.module_fun = %module_fun
+
+fit_data = @grax.problems.single.semi_supervised_fit_data()
+grax.problems.single.semi_supervised_fit_data.data = %data
+grax.problems.single.semi_supervised_fit_data.model = %model
+grax.problems.single.semi_supervised_fit_data.dtype = %dtype
