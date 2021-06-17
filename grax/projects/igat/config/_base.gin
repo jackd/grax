@@ -1,0 +1,50 @@
+import grax.hk_utils
+import grax.projects.igat.data
+import grax.projects.igat.modules
+import huf.configurables
+
+include "grax_config/single/data/transformed.gin"
+
+optimizer = @optax.chain_star()
+optax.chain_star.transforms = [
+    @optax.additive_weight_decay(),
+    @optax.adam(),
+]
+
+node_features_transform = [
+    @grax.graph_utils.transforms.row_normalize,
+    @grax.graph_utils.transforms.to_format
+]
+grax.graph_utils.transforms.to_format.fmt = %fmt
+
+graph_transforms = []
+transform = [@grax.problems.single.as_single_example_splits]
+
+optax.adam.learning_rate = %lr
+optax.additive_weight_decay.weight_decay = %weight_decay
+
+grax.hk_utils.mlp.num_classes = None
+grax.hk_utils.mlp.hidden_filters = %filters
+grax.hk_utils.mlp.dropout_rate = %dropout_rate
+grax.hk_utils.mlp.use_batch_norm = %use_batch_norm
+grax.hk_utils.mlp.use_renormalize = %use_renormalize
+grax.hk_utils.mlp.use_layer_norm = %use_layer_norm
+grax.hk_utils.mlp.input_dropout_rate = %input_dropout_rate
+
+module_fun = @igat.IGATNet
+igat.IGATNet.num_classes = %num_classes
+igat.IGATNet.num_heads = %num_heads
+transform = @igat.data.get_split_data
+
+lr = 1e-2
+input_dropout_rate = None
+filters = 64
+use_batch_norm = False
+use_layer_norm = False
+use_renormalize = False
+num_heads = 1
+
+epsilon = 0.1
+tol = 1e-5
+normalize_features = True
+fmt = "dense"

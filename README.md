@@ -9,11 +9,9 @@ This project uses the following large open-source projects:
 - [jax][jax] for performant low-level operations;
 - [haiku][haiku] for parameter / state management;
 - [optax][optax] for optimizer implementations; and
-- [tensorflow-datasets](https://github.com/tensorflow/datasets) as a dataset framework.
 
 Additional functionality is provided in smaller repositories:
 
-- [graph-tfds](https://github.com/jackd/graph-tfds) for dataset implementations;
 - [spax](https://github.com/jackd/spax) for sparse [jax][jax] classes and operations; and
 - [huf](https://github.com/jackd/huf): minimal framework built on top of [haiku][haiku] and [optax][optax].
 
@@ -32,7 +30,7 @@ pip install -e .  # local install
 
 ### Datasets
 
-#### [DGL](https://github.com/jackd/graph-tfds): Citations
+#### [DGL](https://github.com/jackd/dgl): Citations, Amazon and Coauthor
 
 Citations datasets use [dgl](https://github.com/dmlc/dgl) which will be installed with the above. You can customize where to download/extract relevant files with:
 
@@ -45,19 +43,6 @@ export DGL_DATA=/path/to/dgl_data_dir  # otherwise uses ~/.dgl
 ```bash
 pip install ogb
 export OGB_DATA=/path/to/ogb_data_dir  # otherwise uses ~/ogb
-```
-
-#### [graph-tfds](https://github.com/jackd/graph-tfds): Amazon and Coauthor
-
-`amazon/computers`, `amazon/photo`, `coauthor/cs` and `coauthor/physics` require [graph-tfds](https://github.com/jackd/graph-tfds) (the `dgl` versions do not contain train/validation/test splits).
-
-```bash
-pip install tensorflow  # or tensorflow-cpu, tf-nightly etc
-git clone https://github.com/jackd/graph-tfds
-cd graph-tfds
-pip install -r requirements.txt
-pip install -e .
-export TFDS_DATA=/path/to/tfds_data_dir  # otherwise uses ~/tensorflow_datasets
 ```
 
 ## Quick Start

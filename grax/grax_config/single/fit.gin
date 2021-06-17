@@ -9,21 +9,30 @@ import huf.configurables
 include "huf_config/models/base.gin"
 include "grax_config/single/base.gin"
 
-huf.cli.main.fun = @grax.huf_utils.fit_prepared
-huf.cli.main.callbacks = [@huf.experiments.Logger()]
+huf.cli.main.fun = %fit_fun
+huf.cli.main.callbacks = [@huf.experiments.ConfigLogger()]
 
+fit_fun = @grax.huf_utils.fit_prepared
+grax.huf_utils.fit_prepared.model = %model
 grax.huf_utils.fit_prepared.initial_state = %seed
-grax.huf_utils.fit_prepared.data = %fit_data
+grax.huf_utils.fit_prepared.data = %split_data
 grax.huf_utils.fit_prepared.epochs = %steps
 grax.huf_utils.fit_prepared.callbacks = %callbacks
 
 dtype = "float32"
 
-callbacks = [
-    @huf.callbacks.EpochProgbarLogger(),
-    @huf.callbacks.EarlyStopping(),
-    @huf.callbacks.TerminateOnNaN(),
-]
+callbacks = @grax.huf_utils.get_fit_callbacks()
+grax.huf_utils.get_fit_callbacks.logger = @grax.huf_utils.get_logger()
+grax.huf_utils.get_fit_callbacks.tb_dir = %tb_dir
+grax.huf_utils.get_fit_callbacks.early_stopping = @huf.callbacks.EarlyStopping()
+
+tb_dir = @grax.huf_utils.get_logdir()
+grax.huf_utils.get_logdir.base_dir = %base_dir
+grax.huf_utils.get_logdir.name = %log_id
+log_id = None
+base_dir = "~/grax-logs"
+grax.huf_utils.get_logger.progbar = %progbar
+progbar = True
 seed = 0
 huf.callbacks.EarlyStopping.objective = %objective
 huf.callbacks.EarlyStopping.patience = %patience

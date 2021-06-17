@@ -1,7 +1,0 @@
-import grax.config
-
-include "grax_config/single/data/base.gin"
-include "grax_config/single/data/randomize_splits.gin"
-base_data = @grax.problems.single.pitfalls_data()
-
-grax.problems.single.pitfalls_data.name = %data_name

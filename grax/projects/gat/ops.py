@@ -1,7 +1,8 @@
 import jax
 import jax.numpy as jnp
-import spax
 from jax.experimental.sparse_ops import JAXSparse
+
+import spax
 
 
 def graph_conv(graph: JAXSparse, graph_data: jnp.ndarray, values: jnp.ndarray):

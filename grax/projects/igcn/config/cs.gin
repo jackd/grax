@@ -1,10 +1,9 @@
-import grax.config
-
 include "grax_config/single/data/cs.gin"
-include "igcn/config/fitters/preprocessed.gin"
 
+lr = 1e-2
 weight_decay = 0
+epsilon = 0.5  # 0.1 for input-prop
 dropout_rate = 0.8
-num_propagations = 5
-
-grax.graph_utils.transforms.to_format.fmt = "coo"
+patience = 100
+steps = 1000
+fmt = "coo"

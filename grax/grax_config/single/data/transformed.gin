@@ -1,7 +1,8 @@
 import grax.problems.single.data
 
-data = @grax.problems.single.transformed_simple()
-grax.problems.single.transformed_simple.base = %base_data
+split_data = @gin.singleton()
+split_data/gin.singleton.constructor = @grax.problems.single.transformed_simple
+grax.problems.single.transformed_simple.data = %base_data
 grax.problems.single.transformed_simple.graph_transform = %graph_transform
 grax.problems.single.transformed_simple.node_features_transform = %node_features_transform
 grax.problems.single.transformed_simple.largest_component = %largest_component
@@ -11,4 +12,4 @@ largest_component = False
 graph_transform = ()
 node_features_transform = ()
 fmt = None
-transform = ()
+transform = @grax.problems.single.as_single_example_splits

@@ -1,6 +1,9 @@
 import grax.problems.single.data
 
-transform = @grax.problems.single.randomize_splits
+transform = [
+    @grax.problems.single.randomize_splits,
+    @grax.problems.single.as_single_example_splits,
+]
 grax.problems.single.randomize_splits.train_samples_per_class = %train_samples_per_class
 grax.problems.single.randomize_splits.validation_samples_per_class = %validation_samples_per_class
 grax.problems.single.randomize_splits.rng = %split_seed

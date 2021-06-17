@@ -1,0 +1,10 @@
+import grax.problems.single.data
+import grax.projects.igcn.data
+
+# include after implementation
+
+include "grax_config/single/data/randomize_splits.gin"
+transform = [
+    @grax.problems.single.randomize_splits,
+    @igcn.data.get_split_data,
+]

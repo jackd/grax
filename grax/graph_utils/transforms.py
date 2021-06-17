@@ -2,9 +2,9 @@ import typing as tp
 from functools import partial
 
 import gin
-
 import jax.numpy as jnp
 from jax.experimental.sparse_ops import JAXSparse
+
 from spax import ops, utils
 
 T = tp.TypeVar("T", JAXSparse, jnp.ndarray)
@@ -43,7 +43,7 @@ def linear_transform(x: T, shift: float = 0.0, scale: float = 1.0):
 
 
 @configurable
-def to_format(arr: JAXSparse, fmt: str):
+def to_format(arr: tp.Union[JAXSparse, jnp.ndarray], fmt: str):
     if fmt == "coo":
         return ops.to_coo(arr)
     if fmt == "csr":

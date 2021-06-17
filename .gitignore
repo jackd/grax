@@ -6,7 +6,9 @@
 __pycache__
 .benchmarks
 .pytest_cache
+grax/projects/digcn
 grax/projects/spag
 grax/projects/spectral_partition
+grax/projects/igcn_backup
 examples
 benchmarks/subspace_iteration.py

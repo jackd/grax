@@ -1,0 +1,10 @@
+import grax.hk_utils
+
+include "igcn/config/impl/base.gin"
+
+train_fun = @igcn.data.input_propagated_data
+validation_fun = @igcn.data.input_propagated_data
+test_fun = @igcn.data.input_propagated_data
+igcn.data.input_propagated_data.concat_original = %concat_original_features
+module_fun = @grax.hk_utils.MLP
+concat_original_features = True

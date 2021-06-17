@@ -1,0 +1,57 @@
+import grax.hk_utils
+import grax.projects.igcn.data
+import grax.projects.igcn.modules
+import huf.configurables
+
+include "grax_config/single/data/transformed.gin"
+
+optimizer = @optax.chain_star()
+optax.chain_star.transforms = [
+    @optax.additive_weight_decay(),
+    @optax.adam(),
+]
+
+node_features_transform = [
+    @grax.graph_utils.transforms.row_normalize,
+    @grax.graph_utils.transforms.to_format
+]
+grax.graph_utils.transforms.to_format.fmt = %fmt
+
+graph_transform = []
+transform = @igcn.data.get_split_data
+igcn.data.get_split_data.data = @grax.problems.single.transformed_simple()
+igcn.data.get_split_data.epsilon = %epsilon
+igcn.data.get_split_data.tol = %tol
+igcn.data.get_split_data.rescale = %rescale
+igcn.data.get_split_data.train_fun = %train_fun
+igcn.data.get_split_data.validation_fun = %validation_fun
+igcn.data.get_split_data.test_fun = %test_fun
+
+rescale = False
+optax.adam.learning_rate = %lr
+optax.additive_weight_decay.weight_decay = %weight_decay
+
+grax.hk_utils.mlp.num_classes = %num_classes
+grax.hk_utils.mlp.hidden_filters = %filters
+grax.hk_utils.mlp.dropout_rate = %dropout_rate
+grax.hk_utils.mlp.use_batch_norm = %use_batch_norm
+grax.hk_utils.mlp.use_layer_norm = %use_layer_norm
+grax.hk_utils.mlp.use_gathered_batch_norm = %use_gathered_batch_norm
+grax.hk_utils.mlp.input_dropout_rate = %input_dropout_rate
+grax.hk_utils.mlp.renorm_scale = %renorm_scale
+
+
+huf.objective.key = "acc"
+
+renorm_scale = True
+lr = 1e-2
+input_dropout_rate = None
+filters = 64
+use_batch_norm = False
+use_layer_norm = False
+use_gathered_batch_norm = False
+
+epsilon = 0.1
+tol = 1e-5
+normalize_features = True
+fmt = "dense"

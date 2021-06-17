@@ -1,10 +1,10 @@
 import grax.config
-import grax.problems.single.fit
 import huf.config
 
 include "huf_config/profile.gin"
 include "grax_config/single/base.gin"
 
-train_data = @grax.problems.single.as_examples()
-grax.problems.single.as_examples.data = %data
-grax.problems.single.as_examples.splits = ("train",)
+train_data = @grax.huf_utils.get_split()
+grax.huf_utils.get_split.data = %split_data
+grax.huf_utils.get_split.split = %split
+split = 'train'

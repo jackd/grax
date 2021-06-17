@@ -1,16 +1,16 @@
-import grax.config
-
 include "grax_config/single/data/ogbn/arxiv.gin"
-include "dagnn/config/base.gin"
 
 node_features_transform = [
     @grax.graph_utils.transforms.to_format
 ]
 
-weight_decay = 0
-dropout_rate = 0.2
-input_dropout_rate = 0
-use_batch_norm = True
-filters = 256
-num_propagations = 10
+steps = 1000
+patience = 100
 lr = 5e-3
+filters = (256,)
+input_dropout_rate = 0
+dropout_rate = 0.2
+weight_decay = 0
+normalize_features = False
+use_batch_norm = True
+epsilon = 0.1

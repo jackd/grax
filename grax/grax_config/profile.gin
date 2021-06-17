@@ -1,0 +1,11 @@
+import grax.config
+import grax.huf_utils
+import huf.cli
+
+include "grax_config/single/fit.gin"  # TODO: make this grax_config/base.gin?
+
+huf.cli.main.fun = @grax.huf_utils.profile_memory
+grax.huf_utils.profile_memory.model = %model
+grax.huf_utils.profile_memory.data = %split_data
+grax.huf_utils.profile_memory.compiled = %compiled
+compiled = True

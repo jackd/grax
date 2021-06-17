@@ -1,6 +1,6 @@
 import jax
 import jax.numpy as jnp
-from spax import COO
+from jax.experimental.sparse_ops import COO
 
 
 def random_adjacency(
@@ -47,18 +47,16 @@ def random_adjacency(
 
     # filter out duplicates
     indices = jnp.unique(indices)
-    coords = jnp.stack(jnp.unravel_index(indices, shape), axis=0)
-    num_edges = coords.shape[1]
-    return COO(coords, jnp.ones((num_edges,), dtype=dtype), shape)
+    row, col = jnp.unravel_index(indices, shape)
+    return COO((jnp.ones((row.size,), dtype=dtype), row, col), shape=shape)
 
 
 def star_adjacency(num_nodes: int, dtype=jnp.float32) -> COO:
     """Get the adjacency matrix of an undirected star graph."""
     row = jnp.zeros((num_nodes - 1), dtype=jnp.int32)
     col = jnp.arange(1, num_nodes, dtype=jnp.int32)
-    coords = jnp.stack(
-        (jnp.concatenate((row, col)), jnp.concatenate((col, row))), axis=0
-    )
+    row, col = jnp.concatenate((row, col)), jnp.concatenate((col, row))
     return COO(
-        coords, jnp.ones((2 * (num_nodes - 1),), dtype=dtype), (num_nodes, num_nodes)
+        (jnp.ones((2 * (num_nodes - 1),), dtype=dtype), row, col),
+        shape=(num_nodes, num_nodes),
     )

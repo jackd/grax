@@ -1,6 +1,0 @@
-import grax.config
-
-include "grax_config/single/data/pitfalls.gin"
-data_name = "amazon/computers"
-
-num_classes = 10

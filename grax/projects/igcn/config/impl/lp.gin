@@ -1,0 +1,6 @@
+include "igcn/config/impl/base.gin"
+
+train_fun = @igcn.data.preprocessed_logit_propagated_data
+validation_fun = @igcn.data.preprocessed_logit_propagated_data
+test_fun = @igcn.data.lazy_logit_propagated_data
+module_fun = @igcn.IGCN

@@ -1,15 +1,15 @@
 from functools import partial
 
 import gin
-
-import haiku as hk
 import jax
 import jax.numpy as jnp
+from jax.experimental.sparse_ops import COO
+
+import haiku as hk
 import spax
 from grax.projects.gat import ops as gat_ops
 from huf import initializers
 from huf.module_ops import dropout
-from jax.experimental.sparse_ops import COO
 
 configurable = partial(gin.configurable, module="gat")
 

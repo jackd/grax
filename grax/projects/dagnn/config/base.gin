@@ -1,7 +1,10 @@
 import grax.config
 import grax.graph_utils.transforms
+import grax.hk_utils
 import grax.projects.dagnn.modules
 import huf.configurables
+
+include "grax_config/single/data/transformed.gin"
 
 node_features_transform = [
     @grax.graph_utils.transforms.row_normalize,
@@ -15,17 +18,20 @@ graph_transform = [
 grax.graph_utils.transforms.to_format.fmt = "dense"
 
 module_fun = @dagnn.DAGNN
-dagnn.DAGNN.num_classes = %num_classes
-dagnn.DAGNN.hidden_filters = %filters
-dagnn.DAGNN.dropout_rate = %dropout_rate
+
+dagnn.DAGNN.node_transform = @grax.hk_utils.mlp
 dagnn.DAGNN.num_propagations = %num_propagations
 dagnn.DAGNN.gate_activation = %gate_activation
+grax.hk_utils.mlp.num_classes = %num_classes
+grax.hk_utils.mlp.hidden_filters = %filters
+grax.hk_utils.mlp.dropout_rate = %dropout_rate
+grax.hk_utils.mlp.input_dropout_rate = %input_dropout_rate
+grax.hk_utils.mlp.use_batch_norm = %use_batch_norm
+
+input_dropout_rate = None
+use_batch_norm = False
 
 gate_activation = @jax.nn.sigmoid
-
-# optimizer = @optax.adamw()
-# optax.adamw.learning_rate = %lr
-# optax.adamw.weight_decay = %weight_decay
 
 optimizer = @optax.chain_star()
 optax.chain_star.transforms = [

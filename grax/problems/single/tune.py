@@ -1,3 +1,4 @@
+import typing as tp
 from collections import defaultdict
 from functools import partial
 
@@ -10,6 +11,12 @@ from huf.ray.tune.utils import full_metric_name, get_results
 from huf.types import Modes, Splits
 
 configurable = partial(gin.configurable, module="grax.problems.single.tune")
+
+
+def get_best_trial(analysis: tune.ExperimentAnalysis, objective: Objective, scope: str):
+    return analysis.get_best_trial(
+        full_metric_name(objective), mode=objective.mode, scope=scope
+    )
 
 
 def get_best_trials(
@@ -40,28 +47,38 @@ def get_best_trials(
     )[0]
 
 
-@configurable(denylist="analysis")
+@configurable(denylist=("analysis",))
 def print_best_config_and_results(
     analysis: tune.ExperimentAnalysis,
     objective: Objective = DEFAULT_OBJECTIVE,
-    scope="last",
-    flatten_keys=("seed",),
+    scope="avg",
+    flatten_keys: tp.Optional[tp.Iterable[str]] = None,
     print_fun=print,
 ):
-    trials = get_best_trials(analysis, objective, scope, flatten_keys)
-    config = dict(**trials[0].config)
-    for k in flatten_keys:
-        del config[k]
-
     combined = defaultdict(list)
-    for trial in trials:
 
-        result = get_results(trial)
-        assert len(result) == 1
-        (result,) = result
+    def process_result(result):
         for k, v in result.items():
             if any((k.startswith(f"{m}_") for m in Splits.all())):
                 combined[k].append(v)
+
+    if flatten_keys is None:
+        best_trial = get_best_trial(analysis, objective, scope)
+        result = get_results(best_trial)
+        for r in result:
+            process_result(r)
+        config = best_trial.config
+    else:
+        trials = get_best_trials(analysis, objective, scope, flatten_keys)
+        config = dict(**trials[0].config)
+        for k in flatten_keys:
+            del config[k]
+
+        for trial in trials:
+            result = get_results(trial)
+            for r in result:
+                process_result(r)
+
     lines = ["Best config:"]
     for k in sorted(config):
         lines.append(f"{k} = {config[k]}")

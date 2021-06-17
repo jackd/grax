@@ -80,7 +80,7 @@ def split_by_class(
     for i, class_rng in enumerate(jax.random.split(rng, num_classes)):
         (indices,) = jnp.where(masks[:, i])
         indices = jax.random.permutation(class_rng, indices)
-        indices = jnp.split(indices, splits)
+        indices = jnp.split(indices, jnp.minimum(splits, indices.size))
         for id_list, ids in zip(id_lists, indices):
             id_list.append(ids)
     return tuple(jnp.sort(jnp.concatenate(ids)) for ids in id_lists)

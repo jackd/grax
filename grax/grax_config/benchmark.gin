@@ -1,0 +1,9 @@
+import grax.config
+import grax.huf_utils
+import huf.cli
+
+include "grax_config/single/fit.gin"  # TODO: make this grax_config/base.gin?
+
+huf.cli.main.fun = @grax.huf_utils.benchmark_model
+grax.huf_utils.benchmark_model.model = %model
+grax.huf_utils.benchmark_model.data = %split_data

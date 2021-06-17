@@ -1,13 +1,13 @@
 from functools import partial
 
 import google_benchmark as benchmark
-
 import jax
 import jax.numpy as jnp
+from jax.config import config
+
 import spax
 from grax.graph_utils import laplacians
 from grax.problems.single import data
-from jax.config import config
 
 config.parse_flags_with_absl()
 config.update("jax_enable_x64", True)

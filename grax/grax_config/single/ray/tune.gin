@@ -1,20 +1,16 @@
 import grax.problems.single.tune
 import huf.config
+import huf.ray.tune.callbacks
 import huf.ray.tune.configurables
 import huf.ray.tune.utils
 
-include "grax_config/single/fit.gin"
+include "grax_config/single/fit_many.gin"
 include "huf_config/ray/tune/core.gin"
 
-huf.experiments.run.fun = @grax.problems.single.fit_semi_supervised
-
-callbacks = [
-    @huf.callbacks.EarlyStopping(),
-    @huf.callbacks.TerminateOnNaN(),
-]
+huf.experiments.run.fun = @huf.experiments.run_repeated
+progbar = False
 
 huf.experiments.LambdaCallback.on_done = @grax.problems.single.tune.print_best_config_and_results
-grax.problems.single.tune.print_best_config_and_results.flatten_keys = ('seed',)
 grax.problems.single.tune.print_best_config_and_results.objective = %summary_objective
 
 summary_objective = @huf.objective()

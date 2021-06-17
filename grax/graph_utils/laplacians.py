@@ -2,9 +2,9 @@ import typing as tp
 from functools import partial
 
 import gin
-
 import jax.numpy as jnp
 from jax.experimental.sparse_ops import JAXSparse
+
 from spax import ops
 from spax.utils import diag, eye
 

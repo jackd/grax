@@ -1,5 +1,6 @@
 import jax
 import jax.numpy as jnp
+
 from spax.linalg.polynomials import iterate_chebyshev1
 from spax.linalg.utils import ArrayOrFun, as_array_fun
 

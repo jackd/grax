@@ -3,16 +3,20 @@ import typing as tp
 from dataclasses import dataclass
 from functools import partial
 
+import dgl
 import gin
-import networkx as nx
-
+import h5py
 import jax
 import jax.numpy as jnp
+import networkx as nx
+import numpy as np
+from jax.experimental.sparse_ops import COO, JAXSparse
+
 import spax
 from grax.graph_utils import laplacians, transforms
+from grax.huf_utils import SplitData
 from grax.problems.single.splits import split_by_class
 from huf.types import PRNGKey
-from jax.experimental.sparse_ops import COO, JAXSparse
 from spax import ops
 
 configurable = partial(gin.configurable, module="grax.problems.single")
@@ -29,9 +33,7 @@ def ids_to_mask(ids: jnp.ndarray, size: int, dtype=bool):
 class SemiSupervisedSingle:
     """Data class for a single sparsely labelled graph."""
 
-    node_features: tp.Union[
-        jnp.ndarray, JAXSparse,
-    ]  # [N, F]
+    node_features: tp.Union[jnp.ndarray, JAXSparse]  # [N, F]
     graph: JAXSparse  # [N, N]
     labels: jnp.ndarray  # [N]
     train_ids: tp.Optional[jnp.ndarray]  # [n_train << N]
@@ -81,6 +83,25 @@ class SemiSupervisedSingle:
     @property
     def num_classes(self) -> int:
         return int(self.labels.max()) + 1
+
+
+def save_h5(path: str, data: SemiSupervisedSingle):
+    assert not os.path.isfile(path)
+    graph = data.graph
+    assert isinstance(graph, COO)
+    assert jnp.all(graph.data == 1)
+    with h5py.File(path, "w") as fp:
+        for k, v in (
+            ("node_features", data.node_features),
+            ("row", graph.row),
+            ("col", graph.col),
+            ("labels", data.labels),
+            ("train_ids", data.train_ids),
+            ("validation_ids", data.validation_ids),
+            ("test_ids", data.test_ids),
+        ):
+            fp.create_dataset(k, data=np.asarray(v))
+        fp.attrs["num_classes"] = data.num_classes
 
 
 @configurable
@@ -171,31 +192,33 @@ def get_largest_component(single: SemiSupervisedSingle):
     return subgraph(single, get_largest_component_indices(single.graph))
 
 
-def _load_dgl_graph(dgl_example):
-    row, col = (x.numpy() for x in dgl_example.edges())
-    return COO(
-        (jnp.ones(row.shape, dtype=jnp.float32), row, col),
-        shape=(dgl_example.num_nodes(),) * 2,
-    )
+def _load_dgl_graph(dgl_example, make_symmetric=False):
+    r, c = (x.numpy() for x in dgl_example.edges())
+    shape = (dgl_example.num_nodes(),) * 2
+    if make_symmetric:
+        # add symmetric edges
+        r = np.array(r, dtype=np.int64)
+        c = np.array(c, dtype=np.int64)
+        assert not np.any(r == c)
+        r, c = np.concatenate((r, c)), np.concatenate((c, r))
+        i1d = np.ravel_multi_index((r, c), shape)
+        i1d = np.unique(i1d)  # also sorts
+        r, c = np.unravel_index(  # pylint: disable=unbalanced-tuple-unpacking
+            i1d, shape
+        )
+    return COO((jnp.ones((r.size,), dtype=jnp.float32), r, c), shape=shape)
 
 
-def _load_dgl_example(dgl_example):
-    feat, label, train_mask, test_mask = (
-        dgl_example.ndata[k].numpy()
-        for k in ("feat", "label", "train_mask", "test_mask")
-    )
-    valid_mask = dgl_example.ndata[
-        "val_mask" if "val_mask" in dgl_example.ndata else "valid_mask"
-    ].numpy()
-    # row, col = (x.numpy() for x in dgl_example.edges())
-    # n = feat.shape[0]
-    # graph = COO((jnp.ones(row.shape, dtype=jnp.float32), row, col), shape=(n, n))
-    graph = _load_dgl_graph(dgl_example)
+def _load_dgl_example(dgl_example, make_symmetric=False, feature_format: str = "dense"):
+    feat, label = (dgl_example.ndata[k].numpy() for k in ("feat", "label"))
     train_ids, validation_ids, test_ids = (
-        jnp.where(mask)[0] for mask in (train_mask, valid_mask, test_mask)
+        jnp.where(dgl_example.ndata[k].numpy())[0] if k in dgl_example.ndata else None
+        for k in ("train_mask", "val_mask", "test_mask")
     )
+    graph = _load_dgl_graph(dgl_example, make_symmetric=make_symmetric)
     label = jnp.asarray(label)
 
+    feat = transforms.to_format(feat, feature_format)
     return SemiSupervisedSingle(feat, graph, label, train_ids, validation_ids, test_ids)
 
 
@@ -207,119 +230,61 @@ def _get_dir(data_dir: tp.Optional[str], environ: str, default: tp.Optional[str]
     return os.path.expanduser(os.path.expandvars(data_dir))
 
 
+_dgl_constructors = {
+    "cora": dgl.data.CoraGraphDataset,
+    "pubmed": dgl.data.PubmedGraphDataset,
+    "citeseer": dgl.data.CiteseerGraphDataset,
+    "amazon/computer": dgl.data.AmazonCoBuyComputerDataset,
+    "amazon/photo": dgl.data.AmazonCoBuyPhotoDataset,
+    "coauthor/physics": dgl.data.CoauthorPhysicsDataset,
+    "coauthor/cs": dgl.data.CoauthorCSDataset,
+}
+
+
 @configurable
-def dgl_data(name: str, data_dir: tp.Optional[str] = None):
-    import dgl  # pylint: disable=import-outside-toplevel
+def get_data(name: str, **kwargs):
+    if name in _dgl_constructors:
+        return dgl_data(name, **kwargs)
+    if name.startswith("ogbn-"):
+        return ogbn_data(name[5:], **kwargs)
+    raise ValueError(f"Unrecognized name {name}")
 
+
+@configurable
+def dgl_data(
+    name: str, data_dir: tp.Optional[str] = None, feature_format: str = "dense"
+):
     raw_dir = _get_dir(data_dir, "DGL_DATA", None)
-
-    if name == "cora":
-        ds = dgl.data.CoraGraphDataset(raw_dir=raw_dir)
-    elif name == "pubmed":
-        ds = dgl.data.PubmedGraphDataset(raw_dir=raw_dir)
-    elif name == "citeseer":
-        ds = dgl.data.CiteseerGraphDataset(raw_dir=raw_dir)
-    # elif name == "amazon-computers":
-    #     ds = dgl.data.AmazonCoBuyComputerDataset()
-    # elif name == "amazon-photo":
-    #     ds = dgl.data.AmazonCoBuyPhotoDataset()
-    # elif name == "coauthor-physics":
-    #     ds = dgl.data.CoauthorPhysicsDataset()
-    # elif name == "coauthor-cs":
-    #     ds = dgl.data.CoauthorCSDataset()
-    else:
-        raise ValueError(f"Unrecognized name {name}")
-    return _load_dgl_example(ds[0])
+    ds = _dgl_constructors[name](raw_dir=raw_dir)
+    return _load_dgl_example(ds[0], feature_format=feature_format)
 
 
-def _ogbn_arxiv_example(root_dir: str):
+@configurable
+def ogbn_data(
+    name: str,
+    data_dir: tp.Optional[str] = None,
+    feature_format: str = "dense",
+    make_symmetric: bool = True,
+):
     import ogb.nodeproppred  # pylint: disable=import-outside-toplevel
 
-    example, labels = ogb.nodeproppred.DglNodePropPredDataset(
-        "ogbn-arxiv", root=root_dir
-    )[0]
-    assert not any(
-        k in example.ndata for k in ("label", "train_mask", "valid_mask", "test_mask")
+    root_dir = _get_dir(data_dir, "OGB_DATA", "~/ogb")
+
+    ds = ogb.nodeproppred.DglNodePropPredDataset(f"ogbn-{name}", root=root_dir)
+    split_ids = ds.get_idx_split()
+    train_ids, validation_ids, test_ids = (
+        jnp.asarray(split_ids[n].numpy()) for n in ("train", "valid", "test")
     )
-    year = jnp.squeeze(example.ndata.pop("year").numpy(), axis=1)
-    labels = jnp.squeeze(labels.numpy(), axis=1)
-    train_mask = year <= 2017
-    valid_mask = year == 2018
-    test_mask = year >= 2019
-    train_ids, valid_ids, test_ids = (
-        jnp.where(mask)[0] for mask in (train_mask, valid_mask, test_mask)
+    example, labels = ds[0]
+    feats = example.ndata["feat"].numpy()
+    labels = labels.numpy().squeeze(1)
+    labels[np.isnan(labels)] = -1
+    labels = jnp.asarray(labels.astype(np.int32))
+    graph = _load_dgl_graph(example, make_symmetric=make_symmetric)
+    feats = transforms.to_format(jnp.asarray(feats), feature_format)
+    return SemiSupervisedSingle(
+        feats, graph, labels, train_ids, validation_ids, test_ids
     )
-    feat = example.ndata["feat"]
-    graph = _load_dgl_graph(example)
-    with jax.experimental.enable_x64():
-        graph = spax.ops.add(graph, graph.T)
-    data = SemiSupervisedSingle(
-        jnp.asarray(feat, dtype=jnp.float32),
-        graph,
-        labels,
-        train_ids,
-        valid_ids,
-        test_ids,
-    )
-    return data
-
-
-@configurable
-def ogbn_data(name: str, data_dir: tp.Optional[str] = None):
-    if name == "arxiv":
-        return _ogbn_arxiv_example(root_dir=_get_dir(data_dir, "OGB_DATA", "~/ogb"))
-
-    raise NotImplementedError(f"dataset ogbn-{name} not implemented yet")
-
-
-@configurable
-def pitfalls_data(name: str = "amazon/computers", data_dir: tp.Optional[str] = None):
-    # pylint: disable=import-outside-toplevel
-    import tensorflow as tf
-    import tensorflow_datasets as tfds
-    from graph_tfds.graphs import (  # pylint: disable=unused-import
-        amazon,
-        coauthor,
-    )
-
-    # pylint: enable=import-outside-toplevel
-
-    dataset = tfds.load(name, data_dir=_get_dir(data_dir, "TFDS_DATA", None))
-    if isinstance(dataset, dict):
-        if len(dataset) == 1:
-            (dataset,) = dataset.values()
-        else:
-            raise ValueError(
-                f"tfds builder {name} had more than 1 split ({sorted(dataset.keys())})."
-                " Please use 'name/split'"
-            )
-    element = tf.data.experimental.get_single_element(dataset)
-    graph = element["graph"]
-    features = graph["node_features"]
-    num_nodes = int(features.shape[0])
-    coords = graph["links"].numpy().T
-    row, col = coords
-    valid = row != col
-    row = row[valid]
-    col = col[valid]
-    graph = COO(
-        (jnp.ones(row.shape, dtype=jnp.float32), row, col),
-        shape=(num_nodes, num_nodes),
-    )
-    # add reverse edges
-    graph = ops.add(graph, graph.T)
-    labels = jnp.asarray(element["node_labels"].numpy())
-
-    if isinstance(features, tf.SparseTensor):
-        row, col = features.indices.numpy().T
-        features = COO(
-            (features.values.numpy(), row, col), shape=tuple(features.shape),
-        )
-    else:
-        features = jnp.asarray(features.numpy())
-
-    data = SemiSupervisedSingle(features, graph, labels, None, None, None)
-    return data
 
 
 Transform = tp.Union[tp.Callable[[SemiSupervisedSingle], SemiSupervisedSingle], None]
@@ -388,7 +353,7 @@ def randomize_splits(
 
 @configurable
 def transformed_simple(
-    base: SemiSupervisedSingle,
+    data: SemiSupervisedSingle,
     *,
     largest_component: bool = False,
     graph_transform: tp.Union[GraphTransform, tp.Iterable[GraphTransform]] = (),
@@ -407,11 +372,24 @@ def transformed_simple(
     """
     with jax.experimental.enable_x64():
         if largest_component:
-            base = get_largest_component(base)
+            data = get_largest_component(data)
         for t in as_iterable(graph_transform):
-            base = apply_graph_transform(base, t)
+            data = apply_graph_transform(data, t)
         for t in as_iterable(node_features_transform):
-            base = apply_node_features_transform(base, t)
+            data = apply_node_features_transform(data, t)
         for t in as_iterable(transform):
-            base = t(base)
-    return base
+            data = t(data)
+    return data
+
+
+@configurable
+def as_single_example_splits(data: SemiSupervisedSingle) -> SplitData:
+    train_ex, validation_ex, test_ex = (
+        (
+            (data.graph, data.node_features),
+            data.labels,
+            ids_to_mask(ids, data.num_nodes),
+        )
+        for ids in (data.train_ids, data.validation_ids, data.test_ids)
+    )
+    return SplitData((train_ex,), (validation_ex,), (test_ex,))

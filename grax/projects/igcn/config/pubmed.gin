@@ -1,7 +1,8 @@
-import grax.config
-
 include "grax_config/single/data/pubmed.gin"
-include "igcn/config/fitters/preprocessed.gin"
 
+lr = 1e-2
 weight_decay = 5e-3
+epsilon = 0.05
 dropout_rate = 0.8
+patience = 100
+steps = 1000
