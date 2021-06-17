@@ -4,6 +4,10 @@ repos:
     hooks:
     - id: autoflake
       args: ['--in-place', '--remove-all-unused-imports', '--remove-unused-variable']
+  - repo: https://github.com/asottile/seed-isort-config
+    rev: v2.2.0
+    hooks:
+    -   id: seed-isort-config
   - repo: https://github.com/timothycrosley/isort
     rev: master
     hooks:

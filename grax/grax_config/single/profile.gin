@@ -1,5 +1,6 @@
-import grax.config
 import huf.config
+
+import grax.config
 
 include "huf_config/profile.gin"
 include "grax_config/single/base.gin"

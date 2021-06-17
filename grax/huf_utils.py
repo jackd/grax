@@ -8,11 +8,10 @@ from datetime import datetime
 from functools import partial
 
 import gin
+import haiku as hk
 import jax
 import jax.numpy as jnp
 import numpy as np
-
-import haiku as hk
 from huf import callbacks as cb
 from huf.avals import zeros_like
 from huf.callbacks import (

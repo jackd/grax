@@ -2,15 +2,14 @@ import functools
 import typing as tp
 
 import gin
+import haiku as hk
 import jax
 import jax.numpy as jnp
 import numpy as np
-from jax.experimental.sparse_ops import JAXSparse
-
-import haiku as hk
 from haiku._src import utils
 from huf.module_ops import Linear, dropout
 from huf.types import Activation
+from jax.experimental.sparse_ops import JAXSparse
 
 configurable = functools.partial(gin.configurable, module="grax.hk_utils")
 

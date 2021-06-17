@@ -2,14 +2,14 @@ import typing as tp
 from functools import partial
 
 import gin
+import haiku as hk
 import jax
 import jax.numpy as jnp
+from huf.types import Activation
 from jax.experimental.sparse_ops import JAXSparse
 
-import haiku as hk
 from grax.hk_utils import mlp
 from grax.projects.dagnn.ops import krylov
-from huf.types import Activation
 
 configurable = partial(gin.configurable, module="dagnn")
 

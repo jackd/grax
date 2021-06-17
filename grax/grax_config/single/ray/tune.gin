@@ -1,8 +1,9 @@
-import grax.problems.single.tune
 import huf.config
 import huf.ray.tune.callbacks
 import huf.ray.tune.configurables
 import huf.ray.tune.utils
+
+import grax.problems.single.tune
 
 include "grax_config/single/fit_many.gin"
 include "huf_config/ray/tune/core.gin"

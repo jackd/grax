@@ -1,5 +1,6 @@
-import grax.huf_utils
 import huf.config
+
+import grax.huf_utils
 
 include "huf_config/models/classifier.gin"
 net_transform = @grax.huf_utils.module_call

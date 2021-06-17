@@ -2,7 +2,6 @@ import typing as tp
 
 import jax
 import jax.numpy as jnp
-
 from huf.types import PRNGKey
 
 

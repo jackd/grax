@@ -2,9 +2,9 @@ import typing as tp
 from functools import partial
 
 import gin
+import haiku as hk
 import jax.numpy as jnp
 
-import haiku as hk
 from grax.hk_utils import mlp
 
 configurable = partial(gin.configurable, module="igcn")

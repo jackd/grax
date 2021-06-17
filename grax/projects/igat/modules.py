@@ -2,15 +2,15 @@ import functools
 import typing as tp
 
 import gin
+import haiku as hk
 import jax
 import jax.numpy as jnp
-from jax.experimental.sparse_ops import COO
-
-import haiku as hk
 import spax
+from jax.experimental.sparse_ops import COO
+from spax.linalg import linear_operators as lin_ops
+
 from grax.graph_utils.transforms import symmetric_normalize
 from grax.hk_utils import mlp
-from spax.linalg import linear_operators as lin_ops
 
 configurable = functools.partial(gin.configurable, module="igat")
 

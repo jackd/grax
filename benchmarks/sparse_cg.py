@@ -4,9 +4,9 @@ from functools import partial
 import google_benchmark as benchmark
 import jax
 import jax.numpy as jnp
+import spax
 from jax.config import config
 
-import spax
 from grax.problems.single import data
 
 config.parse_flags_with_absl()

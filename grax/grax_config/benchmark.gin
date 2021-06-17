@@ -1,6 +1,7 @@
+import huf.cli
+
 import grax.config
 import grax.huf_utils
-import huf.cli
 
 include "grax_config/single/fit.gin"  # TODO: make this grax_config/base.gin?
 

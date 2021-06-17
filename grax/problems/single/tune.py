@@ -4,11 +4,10 @@ from functools import partial
 
 import gin
 import numpy as np
-from ray import tune
-
 from huf.objectives import DEFAULT_OBJECTIVE, Objective
 from huf.ray.tune.utils import full_metric_name, get_results
 from huf.types import Modes, Splits
+from ray import tune
 
 configurable = partial(gin.configurable, module="grax.problems.single.tune")
 

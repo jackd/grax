@@ -1,8 +1,9 @@
+import huf.configurables
+
 import grax.config
 import grax.graph_utils.transforms
 import grax.hk_utils
 import grax.projects.dagnn.modules
-import huf.configurables
 
 include "grax_config/single/data/transformed.gin"
 

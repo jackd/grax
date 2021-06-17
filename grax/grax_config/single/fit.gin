@@ -1,10 +1,11 @@
-import grax.config
-import grax.huf_utils
 import huf
 import huf.callbacks
 import huf.cli
 import huf.config
 import huf.configurables
+
+import grax.config
+import grax.huf_utils
 
 include "huf_config/models/base.gin"
 include "grax_config/single/base.gin"

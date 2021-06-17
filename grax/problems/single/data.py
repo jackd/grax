@@ -10,14 +10,14 @@ import jax
 import jax.numpy as jnp
 import networkx as nx
 import numpy as np
-from jax.experimental.sparse_ops import COO, JAXSparse
-
 import spax
+from huf.types import PRNGKey
+from jax.experimental.sparse_ops import COO, JAXSparse
+from spax import ops
+
 from grax.graph_utils import laplacians, transforms
 from grax.huf_utils import SplitData
 from grax.problems.single.splits import split_by_class
-from huf.types import PRNGKey
-from spax import ops
 
 configurable = partial(gin.configurable, module="grax.problems.single")
 

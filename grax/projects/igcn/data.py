@@ -4,13 +4,13 @@ from functools import partial
 import gin
 import jax
 import jax.numpy as jnp
-from jax.experimental.sparse_ops import COO
-
 import spax
+from jax.experimental.sparse_ops import COO
+from spax.linalg import linear_operators as lin_ops
+
 from grax.graph_utils.transforms import symmetric_normalize
 from grax.huf_utils import SplitData
 from grax.problems.single.data import SemiSupervisedSingle, ids_to_mask
-from spax.linalg import linear_operators as lin_ops
 
 configurable = partial(gin.configurable, module="igcn.data")
 

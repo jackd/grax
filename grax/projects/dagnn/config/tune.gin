@@ -1,5 +1,6 @@
-import grax.config
 import huf.ray.tune.configurables
+
+import grax.config
 
 include "grax_config/single/ray/fit_many.gin"
 

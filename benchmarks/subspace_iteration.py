@@ -6,12 +6,12 @@ import jax
 import jax.numpy as jnp
 from absl import flags
 from jax.config import config
-
-from grax.graph_utils import laplacians as lap
-from grax.problems.single.data import dgl_data, get_largest_component
 from spax.linalg import eigh_jvp
 from spax.linalg import subspace_iteration as si
 from spax.types import ArrayOrFun
+
+from grax.graph_utils import laplacians as lap
+from grax.problems.single.data import dgl_data, get_largest_component
 
 flags.DEFINE_bool("deflate", default=False, help="deflate known laplacians eigenvetor")
 flags.DEFINE_bool("rev", default=False, help="benchmark forward + gradient computation")

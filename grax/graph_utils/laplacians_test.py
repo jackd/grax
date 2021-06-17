@@ -3,10 +3,10 @@ import jax.numpy as jnp
 from absl.testing import absltest
 from jax import test_util as jtu
 from jax.config import config
+from spax.linalg.utils import standardize_signs
 
 from grax.data import laplacians as lap
 from grax.data import test_utils
-from spax.linalg.utils import standardize_signs
 
 config.parse_flags_with_absl()
 config.update("jax_enable_x64", True)

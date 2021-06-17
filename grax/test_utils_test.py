@@ -3,10 +3,10 @@ import jax.numpy as jnp
 from absl.testing import absltest
 from jax import test_util as jtu
 from jax.config import config
-
-from grax import test_utils
 from spax import COO, ops
 from spax.utils import diag as diags
+
+from grax import test_utils
 
 config.parse_flags_with_absl()
 config.update("jax_enable_x64", True)
