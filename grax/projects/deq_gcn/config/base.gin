@@ -1,0 +1,41 @@
+import grax.config
+import grax.graph_utils.transforms
+import grax.projects.deq_gcn.modules
+
+include "grax_config/single/data/transformed.gin"
+
+node_features_transform = [
+    @grax.graph_utils.transforms.row_normalize,
+    @grax.graph_utils.transforms.to_format
+]
+graph_transform = [
+    @grax.graph_utils.transforms.add_identity,
+    @grax.graph_utils.transforms.symmetric_normalize,
+]
+
+grax.graph_utils.transforms.to_format.fmt = "dense"
+
+module_fun = @deq_gcn.DEQGCN
+deq_gcn.DEQGCN.num_classes = %num_classes
+deq_gcn.DEQGCN.hidden_filters = %hidden_filters
+deq_gcn.DEQGCN.dropout_rate = %dropout_rate
+deq_gcn.DEQGCN.use_layer_norm = %use_layer_norm
+
+optimizer = @optax.chain_star()
+optax.chain_star.transforms = [
+    @optax.additive_weight_decay(),
+    @optax.adam()
+]
+
+optax.adam.learning_rate = %lr
+optax.additive_weight_decay.weight_decay = %weight_decay
+
+lr = 1e-4
+weight_decay = 5e-4
+hidden_filters = 32
+dropout_rate = 0.5
+use_layer_norm = True
+
+steps = 10000
+patience = 100
+huf.objective.key = "acc"

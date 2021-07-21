@@ -1,0 +1,6 @@
+graph_transform = [
+    @grax.graph_utils.transforms.symmetric_normalize,
+]
+
+deq_gcn.DEQGCN.deq_fn = @deq_gcn.igcn_fn
+deq_gcn.igcn_fn.use_layer_norm = %use_layer_norm
