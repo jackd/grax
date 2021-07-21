@@ -9,7 +9,7 @@ import numpy as np
 from haiku._src import utils
 from huf.module_ops import Linear, dropout
 from huf.types import Activation
-from jax.experimental.sparse_ops import JAXSparse
+from jax.experimental.sparse.ops import JAXSparse
 
 configurable = functools.partial(gin.configurable, module="grax.hk_utils")
 

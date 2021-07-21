@@ -16,7 +16,9 @@ graph_transform = [
     @grax.graph_utils.transforms.symmetric_normalize,
 ]
 
-grax.graph_utils.transforms.to_format.fmt = "dense"
+grax.graph_utils.transforms.to_format.fmt = %fmt
+
+fmt = "dense"
 
 module_fun = @dagnn.DAGNN
 

@@ -1,6 +1,6 @@
 import jax
 import jax.numpy as jnp
-from jax.experimental.sparse_ops import COO
+from jax.experimental.sparse.ops import COO
 
 
 def random_adjacency(

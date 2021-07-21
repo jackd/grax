@@ -14,19 +14,25 @@ configurable = partial(gin.configurable, module="igcn")
 class IGCN(hk.Module):
     def __init__(
         self,
+        num_classes: int,
         node_transform: tp.Callable[[jnp.ndarray, bool], jnp.ndarray] = mlp,
+        smooth_only: bool = True,
         name=None,
     ):
         super().__init__(name=name)
+        self.num_classes = num_classes
+        self.smooth_only = smooth_only
         self.node_transform = node_transform
 
     def __call__(
         self,
         smoother: tp.Any,  # anything with a __matmul__ operator
         node_features: jnp.ndarray,
-        ids=None,
+        ids: jnp.ndarray,
         is_training: bool = False,
     ):
         x = self.node_transform(node_features, is_training=is_training, ids=ids)
-        logits = smoother @ x
+        logits = smoother @ hk.Linear(self.num_classes)(x)
+        if not self.smooth_only:
+            logits += hk.Linear(self.num_classes)(x[ids])
         return logits

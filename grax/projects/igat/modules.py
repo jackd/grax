@@ -6,7 +6,7 @@ import haiku as hk
 import jax
 import jax.numpy as jnp
 import spax
-from jax.experimental.sparse_ops import COO
+from jax.experimental.sparse.ops import COO
 from spax.linalg import linear_operators as lin_ops
 
 from grax.graph_utils.transforms import symmetric_normalize

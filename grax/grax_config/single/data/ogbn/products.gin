@@ -2,5 +2,5 @@ import grax.config
 
 include "grax_config/single/data/ogbn/base.gin"
 
-data_name = "products"
+data_name = "ogbn-products"
 num_classes = 47

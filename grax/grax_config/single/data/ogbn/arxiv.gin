@@ -2,5 +2,5 @@ import grax.config
 
 include "grax_config/single/data/ogbn/base.gin"
 
-data_name = "arxiv"
+data_name = "ogbn-arxiv"
 num_classes = 40

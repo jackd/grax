@@ -2,5 +2,5 @@ import grax.config
 
 include "grax_config/single/data/ogbn/base.gin"
 
-data_name = "mag"
+data_name = "ogbn-mag"
 num_classes = 349

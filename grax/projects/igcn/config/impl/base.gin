@@ -32,7 +32,6 @@ rescale = False
 optax.adam.learning_rate = %lr
 optax.additive_weight_decay.weight_decay = %weight_decay
 
-grax.hk_utils.mlp.num_classes = %num_classes
 grax.hk_utils.mlp.hidden_filters = %filters
 grax.hk_utils.mlp.dropout_rate = %dropout_rate
 grax.hk_utils.mlp.use_batch_norm = %use_batch_norm

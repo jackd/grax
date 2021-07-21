@@ -7,7 +7,7 @@ import jax.numpy as jnp
 import spax
 from huf import initializers
 from huf.module_ops import dropout
-from jax.experimental.sparse_ops import COO
+from jax.experimental.sparse.ops import COO
 
 from grax.projects.gat import ops as gat_ops
 

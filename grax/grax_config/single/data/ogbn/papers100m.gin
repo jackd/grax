@@ -2,5 +2,5 @@ import grax.config
 
 include "grax_config/single/data/ogbn/base.gin"
 
-data_name = "papers100M"
+data_name = "ogbn-papers100M"
 num_classes = 172

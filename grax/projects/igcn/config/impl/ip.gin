@@ -2,6 +2,7 @@ import grax.hk_utils
 
 include "igcn/config/impl/base.gin"
 
+grax.hk_utils.mlp.num_classes = %num_classes
 train_fun = @igcn.data.input_propagated_data
 validation_fun = @igcn.data.input_propagated_data
 test_fun = @igcn.data.input_propagated_data

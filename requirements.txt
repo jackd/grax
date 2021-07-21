@@ -3,5 +3,8 @@ optax
 gin-config
 networkx
 dgl
+h5py
+tqdm
+scipy
 spax@ git+git://github.com/jackd/spax.git
 huf@ git+git://github.com/jackd/huf.git

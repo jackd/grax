@@ -7,7 +7,7 @@ import jax
 import jax.numpy as jnp
 from huf import initializers
 from huf.module_ops import dropout
-from jax.experimental.sparse_ops import JAXSparse
+from jax.experimental.sparse.ops import JAXSparse
 
 from grax.projects.gcn.ops import graph_convolution
 from grax.types import Activation

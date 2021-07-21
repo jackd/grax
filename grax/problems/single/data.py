@@ -12,10 +12,9 @@ import networkx as nx
 import numpy as np
 import spax
 from huf.types import PRNGKey
-from jax.experimental.sparse_ops import COO, JAXSparse
+from jax.experimental.sparse.ops import COO, JAXSparse
 from spax import ops
 
-from grax.graph_utils import laplacians, transforms
 from grax.huf_utils import SplitData
 from grax.problems.single.splits import split_by_class
 
@@ -33,7 +32,8 @@ def ids_to_mask(ids: jnp.ndarray, size: int, dtype=bool):
 class SemiSupervisedSingle:
     """Data class for a single sparsely labelled graph."""
 
-    node_features: tp.Union[jnp.ndarray, JAXSparse]  # [N, F]
+    # Node features might be np.ndarrays to avoid excessive memory requirements
+    node_features: tp.Union[jnp.ndarray, JAXSparse, np.ndarray]  # [N, F]
     graph: JAXSparse  # [N, N]
     labels: jnp.ndarray  # [N]
     train_ids: tp.Optional[jnp.ndarray]  # [n_train << N]
@@ -119,21 +119,6 @@ def symmetric_normalize_with_row_sum(single: SemiSupervisedSingle):
     )
 
 
-@configurable
-def symmetric_normalize_laplacian_with_row_sum(
-    single: SemiSupervisedSingle, shift: float = 0.0, scale: float = 1.0
-):
-    laplacian, rs = laplacians.normalized_laplacian(single.graph)
-    return SemiSupervisedSingle(
-        (rs, single.node_features),
-        transforms.linear_transform(laplacian, shift=shift, scale=scale),
-        single.labels,
-        single.train_ids,
-        single.validation_ids,
-        single.test_ids,
-    )
-
-
 def subgraph(
     single: SemiSupervisedSingle, indices: jnp.ndarray
 ) -> SemiSupervisedSingle:
@@ -206,10 +191,11 @@ def _load_dgl_graph(dgl_example, make_symmetric=False):
         r, c = np.unravel_index(  # pylint: disable=unbalanced-tuple-unpacking
             i1d, shape
         )
+    # return sp.coo_matrix((np.ones((r.size,), dtype=np.float32), (r, c)), shape=shape)
     return COO((jnp.ones((r.size,), dtype=jnp.float32), r, c), shape=shape)
 
 
-def _load_dgl_example(dgl_example, make_symmetric=False, feature_format: str = "dense"):
+def _load_dgl_example(dgl_example, make_symmetric=False):
     feat, label = (dgl_example.ndata[k].numpy() for k in ("feat", "label"))
     train_ids, validation_ids, test_ids = (
         jnp.where(dgl_example.ndata[k].numpy())[0] if k in dgl_example.ndata else None
@@ -218,7 +204,6 @@ def _load_dgl_example(dgl_example, make_symmetric=False, feature_format: str = "
     graph = _load_dgl_graph(dgl_example, make_symmetric=make_symmetric)
     label = jnp.asarray(label)
 
-    feat = transforms.to_format(feat, feature_format)
     return SemiSupervisedSingle(feat, graph, label, train_ids, validation_ids, test_ids)
 
 
@@ -251,26 +236,23 @@ def get_data(name: str, **kwargs):
 
 
 @configurable
-def dgl_data(
-    name: str, data_dir: tp.Optional[str] = None, feature_format: str = "dense"
-):
+def dgl_data(name: str, data_dir: tp.Optional[str] = None):
     raw_dir = _get_dir(data_dir, "DGL_DATA", None)
     ds = _dgl_constructors[name](raw_dir=raw_dir)
-    return _load_dgl_example(ds[0], feature_format=feature_format)
+    return _load_dgl_example(ds[0])
 
 
 @configurable
 def ogbn_data(
-    name: str,
-    data_dir: tp.Optional[str] = None,
-    feature_format: str = "dense",
-    make_symmetric: bool = True,
+    name: str, data_dir: tp.Optional[str] = None, make_symmetric: bool = True,
 ):
     import ogb.nodeproppred  # pylint: disable=import-outside-toplevel
 
     root_dir = _get_dir(data_dir, "OGB_DATA", "~/ogb")
 
+    print(f"Loading dgl ogbn-{name}...")
     ds = ogb.nodeproppred.DglNodePropPredDataset(f"ogbn-{name}", root=root_dir)
+    print("Got base data. Initial preprocessing...")
     split_ids = ds.get_idx_split()
     train_ids, validation_ids, test_ids = (
         jnp.asarray(split_ids[n].numpy()) for n in ("train", "valid", "test")
@@ -281,10 +263,14 @@ def ogbn_data(
     labels[np.isnan(labels)] = -1
     labels = jnp.asarray(labels.astype(np.int32))
     graph = _load_dgl_graph(example, make_symmetric=make_symmetric)
-    feats = transforms.to_format(jnp.asarray(feats), feature_format)
-    return SemiSupervisedSingle(
+    print("Finished initial preprocessing")
+
+    data = SemiSupervisedSingle(
         feats, graph, labels, train_ids, validation_ids, test_ids
     )
+    print("num (nodes, edges, features):")
+    print(data.num_nodes, data.num_edges, data.node_features.shape[1])
+    return data
 
 
 Transform = tp.Union[tp.Callable[[SemiSupervisedSingle], SemiSupervisedSingle], None]
@@ -384,12 +370,11 @@ def transformed_simple(
 
 @configurable
 def as_single_example_splits(data: SemiSupervisedSingle) -> SplitData:
+    features = data.node_features
+    if isinstance(features, np.ndarray):
+        features = jnp.asarray(features)
     train_ex, validation_ex, test_ex = (
-        (
-            (data.graph, data.node_features),
-            data.labels,
-            ids_to_mask(ids, data.num_nodes),
-        )
+        ((data.graph, features), data.labels, ids_to_mask(ids, data.num_nodes),)
         for ids in (data.train_ids, data.validation_ids, data.test_ids)
     )
     return SplitData((train_ex,), (validation_ex,), (test_ex,))

@@ -3,7 +3,7 @@ from functools import partial
 
 import gin
 import jax.numpy as jnp
-from jax.experimental.sparse_ops import JAXSparse
+from jax.experimental.sparse.ops import JAXSparse
 from spax import ops
 from spax.utils import diag, eye
 
@@ -12,8 +12,8 @@ configurable = partial(gin.configurable, module="grax.graph_utils.laplacians")
 
 @configurable
 def laplacian(
-    adj: JAXSparse, shift: float = 0.0, return_row_sum=True,
-) -> tp.Tuple[JAXSparse, jnp.ndarray]:
+    adj: JAXSparse, shift: float = 0.0, return_row_sum: bool = True,
+) -> tp.Union[JAXSparse, tp.Tuple[JAXSparse, jnp.ndarray]]:
     """
     Get a possibly shifted Laplacian matrix.
 

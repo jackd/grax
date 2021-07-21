@@ -3,7 +3,9 @@ from functools import partial
 
 import gin
 import jax.numpy as jnp
-from jax.experimental.sparse_ops import JAXSparse
+import numpy as np
+import scipy.sparse as sp
+from jax.experimental.sparse.ops import COO, CSR, JAXSparse
 from spax import ops, utils
 
 T = tp.TypeVar("T", JAXSparse, jnp.ndarray)
@@ -26,6 +28,12 @@ def symmetric_normalize(x: T) -> T:
 
 
 @configurable
+def symmetric_renormalize(x: T) -> T:
+    x = add_identity(x)
+    return symmetric_normalize(x)
+
+
+@configurable
 def add_identity(x: T, scale: float = 1.0) -> T:
     if isinstance(x, JAXSparse):
         return ops.add(x, ops.mul(utils.eye(x.shape[0], dtype=x.dtype), scale))
@@ -42,7 +50,7 @@ def linear_transform(x: T, shift: float = 0.0, scale: float = 1.0):
 
 
 @configurable
-def to_format(arr: tp.Union[JAXSparse, jnp.ndarray], fmt: str):
+def to_format(arr: tp.Union[JAXSparse, jnp.ndarray, np.ndarray], fmt: str):
     if fmt == "coo":
         return ops.to_coo(arr)
     if fmt == "csr":
@@ -62,3 +70,28 @@ def chain(*transforms):
         return x
 
     return f
+
+
+def to_scipy(mat: JAXSparse):
+    assert isinstance(mat, JAXSparse)
+    if isinstance(mat, COO):
+        return sp.coo_matrix(
+            (mat.data.to_py(), (mat.row.to_py(), mat.col.to_py())), shape=mat.shape
+        )
+    if isinstance(mat, CSR):
+        return sp.csr_matrix(
+            (mat.data.to_py(), mat.indices.to_py(), mat.indptr.to_py()),
+            shape=mat.shape,
+        )
+    raise NotImplementedError(f"Only COO and CSR supported, got {type(mat)}")
+
+
+def from_scipy(mat_sp) -> JAXSparse:
+    assert sp.isspmatrix(mat_sp)
+    if sp.isspmatrix_coo(mat_sp):
+        return COO((mat_sp.data, mat_sp.row, mat_sp.col), shape=mat_sp.shape)
+    if sp.isspmatrix_csr(mat_sp):
+        return CSR((mat_sp.data, mat_sp.indices, mat_sp.indptr), shape=mat_sp.shape)
+    raise NotImplementedError(
+        f"Only coo_matrix and csr_matrix supported, got {type(mat_sp)}"
+    )

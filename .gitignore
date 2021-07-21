@@ -10,5 +10,6 @@ grax/projects/digcn
 grax/projects/spag
 grax/projects/spectral_partition
 grax/projects/igcn_backup
+grax/projects/deq_gcn
 examples
 benchmarks/subspace_iteration.py

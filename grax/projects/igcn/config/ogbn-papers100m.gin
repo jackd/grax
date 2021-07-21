@@ -1,0 +1,59 @@
+import huf.configurables
+
+import grax.hk_utils
+import grax.huf_utils
+import grax.projects.igcn.data
+import grax.projects.igcn.modules
+
+include "grax_config/single/data/ogbn/papers100m.gin"
+
+split_data = @igcn.data.get_cached_input_propagated_data()
+igcn.data.get_cached_input_propagated_data.root_dir = @igcn.data.default_cache_dir()
+igcn.data.get_cached_input_propagated_data.data_fn = @grax.problems.single.ogbn_data
+igcn.data.get_cached_input_propagated_data.epsilon = %epsilon
+igcn.data.get_cached_input_propagated_data.tol = %tol
+igcn.data.get_cached_input_propagated_data.maxiter = %maxiter
+igcn.data.get_cached_input_propagated_data.batch_size = %batch_size
+
+igcn.data.default_cache_dir.data_name = %data_name
+
+# optimizer = @optax.chain_star()
+# optax.chain_star.transforms = [
+#     @optax.additive_weight_decay(),
+#     @optax.adam(),
+# ]
+
+# optax.additive_weight_decay.weight_decay = %weight_decay
+# optax.adam.learning_rate = %lr
+
+optimizer = @optax.adam()
+optax.adam.learning_rate = %lr
+
+module_fun = @grax.hk_utils.MLP
+
+grax.hk_utils.mlp.num_classes = %num_classes
+grax.hk_utils.mlp.hidden_filters = %filters
+grax.hk_utils.mlp.dropout_rate = %dropout_rate
+grax.hk_utils.mlp.use_batch_norm = %use_batch_norm
+grax.hk_utils.mlp.input_dropout_rate = %input_dropout_rate
+grax.hk_utils.mlp.renorm_scale = %renorm_scale
+
+huf.objective.key = "acc"
+grax.huf_utils.get_logger.freq = "step"
+
+batch_size = 256
+lr = 5e-5
+renorm_scale = True
+input_dropout_rate = None
+input_dropout_rate = 0
+use_batch_norm = True
+
+filters = (512, 512, 512)
+dropout_rate = 0.3
+
+epsilon = (0.1, 1)
+tol = 1e-2
+maxiter = 1000
+
+steps = 45 # actually epochs
+patience = 10

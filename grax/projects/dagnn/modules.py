@@ -6,7 +6,7 @@ import haiku as hk
 import jax
 import jax.numpy as jnp
 from huf.types import Activation
-from jax.experimental.sparse_ops import JAXSparse
+from jax.experimental.sparse.ops import JAXSparse
 
 from grax.hk_utils import mlp
 from grax.projects.dagnn.ops import krylov
