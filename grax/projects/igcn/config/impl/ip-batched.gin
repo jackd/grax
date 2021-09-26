@@ -1,41 +1,12 @@
-import huf.configurables
-
-import grax.hk_utils
+import grax.problems.single.data
 import grax.projects.igcn.data
-import grax.projects.igcn.modules
 
 split_data = @igcn.data.get_cached_input_propagated_data()
 igcn.data.get_cached_input_propagated_data.root_dir = @igcn.data.default_cache_dir()
-igcn.data.get_cached_input_propagated_data.data_fn = @base_data/gin.macro
+igcn.data.get_cached_input_propagated_data.data_fn = @grax.problems.single.get_data
+igcn.data.get_cached_input_propagated_data.epsilon = %epsilon
+igcn.data.get_cached_input_propagated_data.tol = %tol
+igcn.data.get_cached_input_propagated_data.maxiter = %maxiter
+igcn.data.get_cached_input_propagated_data.batch_size = %batch_size
 
 igcn.data.default_cache_dir.data_name = %data_name
-
-optimizer = @optax.chain_star()
-optax.chain_star.transforms = [
-    @optax.additive_weight_decay(),
-    @optax.adam(),
-]
-
-optax.adam.learning_rate = %lr
-optax.additive_weight_decay.weight_decay = %weight_decay
-
-grax.hk_utils.mlp.num_classes = %num_classes
-grax.hk_utils.mlp.hidden_filters = %filters
-grax.hk_utils.mlp.dropout_rate = %dropout_rate
-grax.hk_utils.mlp.use_batch_norm = %use_batch_norm
-grax.hk_utils.mlp.use_layer_norm = %use_layer_norm
-grax.hk_utils.mlp.use_gathered_batch_norm = %use_gathered_batch_norm
-grax.hk_utils.mlp.input_dropout_rate = %input_dropout_rate
-grax.hk_utils.mlp.renorm_scale = %renorm_scale
-
-huf.objective.key = "acc"
-
-renorm_scale = True
-lr = 1e-2
-input_dropout_rate = None
-filters = (256, 256, 256)
-use_batch_norm = True
-
-epsilon = (0.1, 1)
-tol = 1e-2
-maxiter = 1000

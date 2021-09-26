@@ -3,3 +3,6 @@ import grax.problems.single.data
 
 base_data = @grax.problems.single.get_data()
 grax.problems.single.get_data.name = %data_name
+grax.problems.single.ogbn_data.make_symmetric = %make_symmetric
+
+make_symmetric = True

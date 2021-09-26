@@ -3,3 +3,8 @@ import grax.problems.single.data
 
 base_data = @grax.problems.single.dgl_data()
 grax.problems.single.dgl_data.name = %data_name
+grax.problems.single.dgl_data.make_symmetric = %make_symmetric
+grax.problems.single.dgl_data.sparse_features = %sparse_features
+
+sparse_features = True
+make_symmetric = True

@@ -7,5 +7,9 @@ test_fun = @igcn.data.lazy_logit_propagated_data
 module_fun = @igcn.IGCN
 igcn.IGCN.num_classes = %num_classes
 igcn.IGCN.smooth_only = %smooth_only
+igcn.IGCN.head_transform = %head_transform
+igcn.IGCN.tail_transform = %tail_transform
+head_transform = @grax.hk_utils.mlp
+tail_transform = None
 
 smooth_only = True

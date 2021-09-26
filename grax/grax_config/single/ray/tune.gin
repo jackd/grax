@@ -13,6 +13,7 @@ progbar = False
 
 huf.experiments.LambdaCallback.on_done = @grax.problems.single.tune.print_best_config_and_results
 grax.problems.single.tune.print_best_config_and_results.objective = %summary_objective
+grax.huf_utils.get_fit_callbacks.logger = None
 
 summary_objective = @huf.objective()
 summary_objective/huf.objective.key = "acc"

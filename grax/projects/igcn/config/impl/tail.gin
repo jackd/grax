@@ -1,0 +1,5 @@
+tail_transform = @grax.hk_utils.mlp
+
+tail_transform/grax.hk_utils.mlp.input_dropout_rate = 0  # head has dropout at end
+tail_transform/grax.hk_utils.mlp.hidden_filters = %tail_filters
+tail_filters = 128

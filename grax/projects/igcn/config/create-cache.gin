@@ -1,0 +1,4 @@
+import grax.projects.igcn.data
+
+huf.cli.main.fun = @igcn.data.get_cached_input_propagated_data
+igcn.data.get_cached_input_propagated_data.allow_creation = True

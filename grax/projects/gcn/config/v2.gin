@@ -1,0 +1,6 @@
+import grax.projects.gcn.modules
+
+module_fun = @gcn.GCN2
+gcn.GCN2.num_classes = %num_classes
+gcn.GCN2.hidden_filters = %filters
+gcn.GCN2.dropout_rate = %dropout_rate

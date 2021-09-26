@@ -8,3 +8,4 @@ transform = [
     @grax.problems.single.randomize_splits,
     @igcn.data.get_split_data,
 ]
+raise Exception on pass (test if this file is actually used)

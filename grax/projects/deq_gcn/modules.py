@@ -81,6 +81,7 @@ class DEQGCN(hk.Module):
         node_features = jax.nn.relu(node_features)
         if self.use_layer_norm:
             node_features = layer_norm(node_features)
+        node_features = dropout(node_features, self.dropout_rate, is_training)
 
         h = jnp.zeros_like(node_features)
         graph_components = graph.data, graph.row, graph.col

@@ -19,6 +19,7 @@ module_fun = @gcn.GCN
 gcn.GCN.num_classes = %num_classes
 gcn.GCN.hidden_filters = %filters
 gcn.GCN.dropout_rate = %dropout_rate
+gcn.GCN.residual_connections = %residual_connections
 
 optimizer = @optax.chain_star()
 optax.chain_star.transforms = [
@@ -33,6 +34,7 @@ lr = 1e-2
 weight_decay = 5e-4
 filters = 16
 dropout_rate = 0.5
+residual_connections = False
 
 steps = 200
 patience = 10

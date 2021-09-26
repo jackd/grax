@@ -1,1 +1,8 @@
 include "grax_config/single/data/computer.gin"
+
+weight_decay = 5e-5
+epsilon = 0.1
+dropout_rate = 0.5
+patience = 300
+steps = 3000
+largest_component = True

@@ -7,9 +7,11 @@ grax.problems.single.transformed_simple.graph_transform = %graph_transform
 grax.problems.single.transformed_simple.node_features_transform = %node_features_transform
 grax.problems.single.transformed_simple.largest_component = %largest_component
 grax.problems.single.transformed_simple.transform = %transform
+grax.problems.single.transformed_simple.with_back_edges = %with_back_edges
 
 largest_component = False
 graph_transform = ()
 node_features_transform = ()
 fmt = None
-transform = @grax.problems.single.as_single_example_splits
+transform = ()
+with_back_edges = True

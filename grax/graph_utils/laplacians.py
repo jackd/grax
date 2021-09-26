@@ -70,5 +70,5 @@ def normalized_laplacian(
 
 def normalized_laplacian_zero_eigenvector(row_sum: jnp.ndarray):
     """Get the normalized eigenvector for eigenvalue zero of a normalized Laplacian."""
-    v0 = row_sum ** 0.5
+    v0 = jnp.sqrt(row_sum)
     return v0 / jnp.linalg.norm(v0)

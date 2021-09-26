@@ -15,6 +15,7 @@ from huf.types import PRNGKey
 from jax.experimental.sparse.ops import COO, JAXSparse
 from spax import ops
 
+from grax.graph_utils import algorithms
 from grax.huf_utils import SplitData
 from grax.problems.single.splits import split_by_class
 
@@ -51,7 +52,7 @@ class SemiSupervisedSingle:
 
     @property
     def num_edges(self) -> int:
-        return self.graph.nnz // 2
+        return self.graph.data.size // 2
 
     def as_dict(self):
         return dict(
@@ -111,6 +112,31 @@ def symmetric_normalize_with_row_sum(single: SemiSupervisedSingle):
     graph = ops.scale_columns(ops.scale_rows(single.graph, factor), factor)
     return SemiSupervisedSingle(
         (rs, single.node_features),
+        graph,
+        single.labels,
+        single.train_ids,
+        single.validation_ids,
+        single.test_ids,
+    )
+
+
+@configurable
+def remove_back_edges(single: SemiSupervisedSingle) -> SemiSupervisedSingle:
+    nn = single.num_nodes
+    lil = [[] for _ in range(nn)]
+    for r, c in zip(single.graph.row.to_py(), single.graph.col.to_py()):
+        # lil[r].append(c)
+        lil[c].append(r)
+    algorithms.remove_back_edges(lil)
+    lengths = jnp.array([len(l) for l in lil])
+    rows = jnp.repeat(jnp.arange(nn, dtype=jnp.int32), lengths)
+    cols = jnp.concatenate(
+        [np.array(l, np.int32) if len(l) else np.zeros((0,), np.int32) for l in lil],
+        axis=0,
+    )
+    graph = COO((jnp.ones((rows.size,)), rows, cols), shape=(nn, nn))
+    return SemiSupervisedSingle(
+        single.node_features,
         graph,
         single.labels,
         single.train_ids,
@@ -184,7 +210,10 @@ def _load_dgl_graph(dgl_example, make_symmetric=False):
         # add symmetric edges
         r = np.array(r, dtype=np.int64)
         c = np.array(c, dtype=np.int64)
-        assert not np.any(r == c)
+        # remove diagonals
+        valid = r != c
+        r = r[valid]
+        c = c[valid]
         r, c = np.concatenate((r, c)), np.concatenate((c, r))
         i1d = np.ravel_multi_index((r, c), shape)
         i1d = np.unique(i1d)  # also sorts
@@ -195,8 +224,13 @@ def _load_dgl_graph(dgl_example, make_symmetric=False):
     return COO((jnp.ones((r.size,), dtype=jnp.float32), r, c), shape=shape)
 
 
-def _load_dgl_example(dgl_example, make_symmetric=False):
+def _load_dgl_example(
+    dgl_example, make_symmetric=False, sparse_features=False
+) -> SemiSupervisedSingle:
     feat, label = (dgl_example.ndata[k].numpy() for k in ("feat", "label"))
+    if sparse_features:
+        i, j = np.where(feat)
+        feat = COO((feat[i, j], i, j), shape=feat.shape)
     train_ids, validation_ids, test_ids = (
         jnp.where(dgl_example.ndata[k].numpy())[0] if k in dgl_example.ndata else None
         for k in ("train_mask", "val_mask", "test_mask")
@@ -236,10 +270,17 @@ def get_data(name: str, **kwargs):
 
 
 @configurable
-def dgl_data(name: str, data_dir: tp.Optional[str] = None):
+def dgl_data(
+    name: str,
+    data_dir: tp.Optional[str] = None,
+    make_symmetric: bool = True,
+    sparse_features: bool = False,
+) -> SemiSupervisedSingle:
     raw_dir = _get_dir(data_dir, "DGL_DATA", None)
     ds = _dgl_constructors[name](raw_dir=raw_dir)
-    return _load_dgl_example(ds[0])
+    return _load_dgl_example(
+        ds[0], make_symmetric=make_symmetric, sparse_features=sparse_features
+    )
 
 
 @configurable
@@ -323,7 +364,7 @@ def randomize_splits(
     train_samples_per_class: int,
     validation_samples_per_class: int,
     rng: tp.Union[PRNGKey, int] = 0,
-):
+) -> SemiSupervisedSingle:
     if isinstance(rng, int):
         rng = jax.random.PRNGKey(rng)
     splits = split_by_class(
@@ -342,16 +383,21 @@ def transformed_simple(
     data: SemiSupervisedSingle,
     *,
     largest_component: bool = False,
+    with_back_edges: bool = True,
+    id_transform: tp.Optional[SingleTransform] = None,
     graph_transform: tp.Union[GraphTransform, tp.Iterable[GraphTransform]] = (),
     node_features_transform: tp.Union[
         FeatureTransform, tp.Iterable[FeatureTransform]
     ] = (),
     transform: tp.Union[SingleTransform, tp.Iterable[SingleTransform]] = (),
+    as_split: bool = True,
 ):
     """
     Applies common transforms sequentially.
 
     - `get_largest_component` if `largest_transform is True`
+    - id_transform if not None
+    - `remove_back_edges` if not with_back_edges
     - graph_transform
     - node_features_transform
     - transform
@@ -359,12 +405,19 @@ def transformed_simple(
     with jax.experimental.enable_x64():
         if largest_component:
             data = get_largest_component(data)
+        if id_transform is not None:
+            data = id_transform(data)
+        if not with_back_edges:
+            data = remove_back_edges(data)
         for t in as_iterable(graph_transform):
             data = apply_graph_transform(data, t)
         for t in as_iterable(node_features_transform):
             data = apply_node_features_transform(data, t)
         for t in as_iterable(transform):
             data = t(data)
+        if as_split:
+            data = as_single_example_splits(data)
+
     return data
 
 

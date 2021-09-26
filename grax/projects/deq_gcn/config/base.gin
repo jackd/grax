@@ -31,11 +31,10 @@ optax.adam.learning_rate = %lr
 optax.additive_weight_decay.weight_decay = %weight_decay
 
 lr = 1e-4
-weight_decay = 5e-4
-hidden_filters = 32
+weight_decay = 1e-3
+hidden_filters = 256
 dropout_rate = 0.5
 use_layer_norm = True
 
-steps = 10000
+steps = 1000
 patience = 100
-huf.objective.key = "acc"

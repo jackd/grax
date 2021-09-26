@@ -19,7 +19,7 @@ node_features_transform = [
 grax.graph_utils.transforms.to_format.fmt = %fmt
 
 graph_transforms = []
-transform = [@grax.problems.single.as_single_example_splits]
+transform = []
 
 optax.adam.learning_rate = %lr
 optax.additive_weight_decay.weight_decay = %weight_decay

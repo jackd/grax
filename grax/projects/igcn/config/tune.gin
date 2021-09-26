@@ -6,11 +6,15 @@ include "grax_config/single/ray/tune.gin"
 
 dropout_rate = @ray.tune.grid_search()
 weight_decay = @ray.tune.grid_search()
-num_propagations = @ray.tune.grid_search()
+epsilon = @ray.tune.grid_search()
 
 dropout_rate/ray.tune.grid_search.values = [0.5, 0.8]
 weight_decay/ray.tune.grid_search.values = [0, 2e-2, 5e-3, 5e-4, 5e-5]
-num_propagations/ray.tune.grid_search.values = [5, 10, 20]
+epsilon/ray.tune.grid_search.values = [0.05, 0.1, 0.2]
+
+# dropout_rate/ray.tune.grid_search.values = [0.5, 0.6, 0.7, 0.8]
+# weight_decay/ray.tune.grid_search.values = [5e-4, 1e-4, 5e-5, 0]
+# epsilon/ray.tune.grid_search.values = [0.05, 0.1, 0.2]
 
 num_repeats = 10
 
@@ -19,5 +23,5 @@ gpus_per_trial = 1
 tune_config = {
     "dropout_rate": %dropout_rate,
     "weight_decay": %weight_decay,
-    "num_propagations": %num_propagations,
+    "epsilon": %epsilon,
 }

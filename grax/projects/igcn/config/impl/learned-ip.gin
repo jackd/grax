@@ -1,0 +1,5 @@
+include "igcn/config/impl/learned-lp.gin"
+
+head_transform = None
+tail_transform = @grax.hk_utils.mlp
+maxiter = %test_maxiter

@@ -1,0 +1,13 @@
+import grax.config
+
+include "grax_config/single/data/ogbn/arxiv.gin"
+include "gcn/config/base.gin"
+# include "gcn/config/v2.gin"
+
+node_features_transform = [
+    @grax.graph_utils.transforms.to_format
+]
+
+steps = 1000
+patience = 100
+filters = (128, 128)

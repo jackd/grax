@@ -1,0 +1,8 @@
+make_symmetric = False
+graph_transform = [
+    # @grax.graph_utils.transforms.transpose,
+    # @grax.graph_utils.transforms.add_identity,
+    @grax.graph_utils.transforms.row_normalize,
+]
+
+residual_connections = True

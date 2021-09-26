@@ -8,6 +8,7 @@ import h5py
 import huf.data
 import jax
 import jax.numpy as jnp
+import numpy as np
 import scipy.sparse as sp
 import spax
 import tqdm
@@ -15,11 +16,9 @@ from haiku import PRNGSequence
 from jax.experimental.sparse.ops import COO
 from spax.linalg import linear_operators as lin_ops
 
-from grax.graph_utils.transforms import from_scipy, to_scipy
+from grax.graph_utils.transforms import from_scipy, symmetric_normalize, to_scipy
 from grax.huf_utils import SplitData
 from grax.problems.single.data import SemiSupervisedSingle
-
-# from grax.graph_utils.transforms import symmetric_normalize
 
 configurable = partial(gin.configurable, module="igcn.data")
 
@@ -33,7 +32,7 @@ def ids_to_mask_matrix(ids: jnp.ndarray, size: int, dtype=jnp.float32):
     )
 
 
-def _get_propagator(
+def get_propagator(
     adj: COO,
     *,
     epsilon: float = 0.1,
@@ -41,6 +40,7 @@ def _get_propagator(
     maxiter: tp.Optional[int] = None,
     rescale: bool = False,
 ) -> lin_ops.LinearOperator:
+    adj = spax.ops.coo.reorder(adj)
     assert maxiter is None or isinstance(maxiter, int)
     if epsilon == 1:
         return lin_ops.Identity(n=adj.shape[0], dtype=jnp.float32)
@@ -54,7 +54,7 @@ def _get_propagator(
 
     x = to_scipy(x)
     assert sp.isspmatrix_coo(x)
-    factor = 1 / (sp.linalg.norm(x, ord=1, axis=1) ** 0.5)
+    factor = jax.lax.rsqrt(sp.linalg.norm(x, ord=1, axis=1))
     x = sp.coo_matrix(
         (x.data * factor[x.row] * factor[x.col], (x.row, x.col)), shape=x.shape
     )
@@ -100,22 +100,70 @@ def lazy_logit_propagated_data(
 @configurable
 def input_propagated_data(
     propagator: lin_ops.LinearOperator,
-    features: tp.Union[COO, jnp.ndarray],
+    features: tp.Union[COO, jnp.ndarray, np.ndarray],
     labels: jnp.ndarray,
     ids: jnp.ndarray,
-    concat_original: bool = True,
+    smooth_only: bool = False,
+    fmt: str = "dense",
+    # block_size: int = 1024,
 ):
     dense_features = spax.ops.to_dense(features)
-    prop_features = (propagator @ dense_features)[ids]
-    dense_features = dense_features[ids]
-    if concat_original:
-        if isinstance(features, COO):
+    # prop_features = jax.vmap(
+    #     lambda f: propagator @ f[:, :, jnp.newaxis], in_axes=1, out_axes=1
+    # )(dense_features)[:, :, 0]
+    # prop_features = jnp.stack(
+    #     [
+    #         (propagator @ dense_features[:, i])[ids]
+    #         for i in range(dense_features.shape[1])
+    #     ],
+    #     axis=1,
+    # )
+    prop_features = (propagator @ dense_features)[ids]  # sometimes fails
+    # if isinstance(features, COO):
+    #     f = np.zeros(shape=features.shape, dtype=features.dtype)
+    #     f[features.row.to_py(), features.col.to_py()] = features.data.to_py()
+    #     dense_features = f
+    # elif isinstance(features, jnp.ndarray):
+    #     dense_features = features.to_py()
+    # else:
+    #     dense_features = features
+
+    # assert isinstance(dense_features, jnp.ndarray)
+    # nf = dense_features.shape[1]
+    # num_blocks = nf // block_size + int(nf % block_size)
+    # blocks = (
+    #     dense_features[:, i * block_size : (i + 1) * block_size]
+    #     for i in range(num_blocks)
+    # )
+    # prop_features = jnp.concatenate(
+    #     [(propagator @ block)[ids] for block in blocks], axis=-1
+    # )
+    if smooth_only:
+        features = prop_features
+    else:
+        dense_features = dense_features[ids]
+        if fmt == "coo":
             features = lin_ops.HStacked(spax.ops.to_coo(dense_features), prop_features)
         else:
             features = jnp.concatenate((dense_features, prop_features), axis=-1)
-    else:
-        features = prop_features
     return ((features, labels[ids]),)
+
+
+@configurable
+def get_learned_split_data(data: SemiSupervisedSingle) -> SplitData:
+    adj = data.graph
+    adj = symmetric_normalize(adj)
+
+    def get_data(ids):
+        inputs = adj, data.node_features, ids
+        example = inputs, data.labels[ids]
+        return (example,)
+
+    return SplitData(
+        get_data(data.train_ids),
+        get_data(data.validation_ids),
+        get_data(data.test_ids),
+    )
 
 
 @configurable
@@ -123,6 +171,7 @@ def get_split_data(
     data: SemiSupervisedSingle,
     epsilon: float,
     tol: float = 1e-5,
+    maxiter: tp.Optional[int] = None,
     rescale: bool = False,
     train_fun: tp.Callable = preprocessed_logit_propagated_data,
     validation_fun: tp.Callable = preprocessed_logit_propagated_data,
@@ -142,8 +191,9 @@ def get_split_data(
         `SplitData` where each dataset is a single-example tuple of the form
             `((propagator, node_features), labels[ids])`
     """
-    propagator = _get_propagator(data.graph, epsilon=epsilon, tol=tol, rescale=rescale)
-
+    propagator = get_propagator(
+        data.graph, epsilon=epsilon, tol=tol, rescale=rescale, maxiter=maxiter
+    )
     # jit so multiple input_propagated_data funs use the same propagator @ features
     @jax.jit
     def get_data():
@@ -157,7 +207,8 @@ def get_split_data(
         )
         return SplitData(train_data, validation_data, test_data)
 
-    return get_data()
+    data = get_data()
+    return data
 
 
 # class InputPropagatedData:
@@ -252,7 +303,7 @@ def get_split_data(
 #                 group = node_features.create_dataset(
 #                     key, shape=input_data.shape, dtype=input_data.dtype
 #                 )
-#                 propagator = _get_propagator(self.graph, epsilon)
+#                 propagator = get_propagator(self.graph, epsilon)
 #                 cols = range(input_data.shape[1])
 #                 desc = f"Propagating input features with epsilon={epsilon}"
 #                 if progbar:
@@ -393,7 +444,7 @@ def create_cached_features(
             root.attrs["epsilon"] = epsilon
             root.attrs["tol"] = tol
             root.attrs["maxiter"] = maxiter
-            propagator = _get_propagator(
+            propagator = get_propagator(
                 data.graph, epsilon=epsilon, tol=tol, maxiter=maxiter
             )
             features = data.node_features

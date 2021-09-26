@@ -30,7 +30,7 @@ pip install -e .  # local install
 
 ### Datasets
 
-#### [DGL](https://github.com/jackd/dgl): Citations, Amazon and Coauthor
+#### [DGL](https://github.com/dmlc/dgl): Citations, Amazon and Coauthor
 
 Citations datasets use [dgl](https://github.com/dmlc/dgl) which will be installed with the above. You can customize where to download/extract relevant files with:
 

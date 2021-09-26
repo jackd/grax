@@ -1,16 +1,33 @@
 import huf.configurables
 
 import grax.hk_utils
+import grax.optax_utils
 import grax.projects.igcn.data
 import grax.projects.igcn.modules
 
 include "grax_config/single/data/transformed.gin"
 
+module_fun = @igcn.LearnedIGCN
+igcn.LearnedIGCN.tol = (%tol, %test_tol)
+igcn.LearnedIGCN.maxiter = (%maxiter, %test_maxiter)
+igcn.IGCN.num_classes = %num_classes
+igcn.IGCN.smooth_only = %smooth_only
+igcn.IGCN.head_transform = %head_transform
+igcn.IGCN.tail_transform = %tail_transform
+head_transform = @grax.hk_utils.mlp
+tail_transform = None
+
+smooth_only = True
+
+
 optimizer = @optax.chain_star()
 optax.chain_star.transforms = [
-    @optax.additive_weight_decay(),
+    @grax.optax_utils.partition(),  # weight decay is not epsilon
     @optax.adam(),
 ]
+
+grax.optax_utils.partition.predicate = @igcn.if_e0
+grax.optax_utils.partition.if_false = @optax.additive_weight_decay()
 
 node_features_transform = [
     @grax.graph_utils.transforms.row_normalize,
@@ -19,19 +36,11 @@ node_features_transform = [
 grax.graph_utils.transforms.to_format.fmt = %fmt
 
 graph_transform = []
-split_data/gin.singleton.constructor = @igcn.data.get_split_data
+split_data/gin.singleton.constructor = @igcn.data.get_learned_split_data
 
-igcn.data.get_split_data.data = @grax.problems.single.transformed_simple()
-igcn.data.get_split_data.epsilon = %epsilon
-igcn.data.get_split_data.tol = %tol
-igcn.data.get_split_data.maxiter = %maxiter
-igcn.data.get_split_data.rescale = %rescale
-igcn.data.get_split_data.train_fun = %train_fun
-igcn.data.get_split_data.validation_fun = %validation_fun
-igcn.data.get_split_data.test_fun = %test_fun
+igcn.data.get_learned_split_data.data = @grax.problems.single.transformed_simple()
 
 grax.problems.single.transformed_simple.as_split = False
-rescale = False
 optax.adam.learning_rate = %lr
 optax.additive_weight_decay.weight_decay = %weight_decay
 
@@ -51,8 +60,9 @@ use_batch_norm = False
 use_layer_norm = False
 use_gathered_batch_norm = False
 
-epsilon = 0.1
-tol = 1e-5
+tol = 1e-2
+test_tol = %tol
+maxiter = None
+test_maxiter = 100000
 normalize_features = True
 fmt = "dense"
-maxiter = None

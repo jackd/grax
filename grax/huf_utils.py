@@ -109,7 +109,7 @@ def module_call(
     module = module_fun(**kwargs)
     if not isinstance(inputs, (tuple, list)):
         inputs = (inputs,)
-    return module(*inputs, is_training)
+    return module(*inputs, is_training=is_training)
 
 
 @configurable

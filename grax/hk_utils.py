@@ -6,10 +6,19 @@ import haiku as hk
 import jax
 import jax.numpy as jnp
 import numpy as np
-from haiku._src import utils
-from huf.module_ops import Linear, dropout
+from haiku._src import utils  # pylint: disable=no-name-in-module
+from huf.module_ops import Linear
+from huf.module_ops import dropout as _dropout
 from huf.types import Activation
 from jax.experimental.sparse.ops import JAXSparse
+from spax.linalg.linear_operators import HStacked
+
+
+def dropout(x, rate: float, is_training: bool):
+    if isinstance(x, HStacked):
+        return HStacked(*(dropout(arg, rate, is_training) for arg in x.args))
+    return _dropout(x, rate, is_training)
+
 
 configurable = functools.partial(gin.configurable, module="grax.hk_utils")
 
@@ -268,3 +277,21 @@ class MLP(hk.Module):
 
     def __call__(self, x, is_training: bool):
         return mlp(x, is_training, **self._kwargs)
+
+
+@configurable
+class PReLU(hk.Module):
+    def __init__(
+        self, alpha_init: tp.Callable = jnp.zeros, name: tp.Optional[str] = None
+    ):
+        super().__init__(name=name)
+        self.alpha_init = alpha_init
+
+    def __call__(self, x):
+        alpha = hk.get_parameter("alpha", shape=(), dtype=x.dtype, init=self.alpha_init)
+        return jnp.where(x < 0, alpha * x, x)
+
+
+@configurable
+def prelu(x, **kwargs):
+    return PReLU(**kwargs)(x)

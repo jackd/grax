@@ -5,11 +5,17 @@ import grax.huf_utils
 import grax.projects.igcn.data
 import grax.projects.igcn.modules
 
-include "grax_config/single/data/ogbn/papers100m.gin"
+include "grax_config/single/data/ogbn/products.gin"
 include "igcn/config/impl/ip-batched.gin"
 
-optimizer = @optax.adam()
+
+optimizer = @optax.chain_star()
+optax.chain_star.transforms = [
+    @optax.additive_weight_decay(),
+    @optax.adam(),
+]
 optax.adam.learning_rate = %lr
+optax.additive_weight_decay.weight_decay = %weight_decay
 
 module_fun = @grax.hk_utils.MLP
 
@@ -19,22 +25,25 @@ grax.hk_utils.mlp.dropout_rate = %dropout_rate
 grax.hk_utils.mlp.use_batch_norm = %use_batch_norm
 grax.hk_utils.mlp.input_dropout_rate = %input_dropout_rate
 grax.hk_utils.mlp.renorm_scale = %renorm_scale
+grax.hk_utils.mlp.activation = %activation
 
 grax.huf_utils.get_logger.freq = "step"
 
-batch_size = 256
-lr = 5e-5
+batch_size = 4096
+lr = 1e-4
+weight_decay = 1e-4
+
 renorm_scale = True
 input_dropout_rate = None
 input_dropout_rate = 0
 use_batch_norm = True
-
-filters = (512, 512, 512)
-dropout_rate = 0.3
+filters = (512, 512)
+dropout_rate = 0.5
+activation = @grax.hk_utils.prelu
 
 epsilon = (0.1, 1)
 tol = 1e-2
 maxiter = 1000
 
-steps = 45 # actually epochs
+steps = 500 # actually epochs
 patience = 10

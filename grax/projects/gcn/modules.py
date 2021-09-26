@@ -6,7 +6,7 @@ import haiku as hk
 import jax
 import jax.numpy as jnp
 from huf import initializers
-from huf.module_ops import dropout
+from huf.module_ops import Linear, dropout
 from jax.experimental.sparse.ops import JAXSparse
 
 from grax.projects.gcn.ops import graph_convolution
@@ -59,6 +59,42 @@ class GraphConvolution(hk.Module):
 
 
 @configurable
+class GCN2(hk.Module):
+    """
+    Based on ogbn-arxiv leaderboard GCN.
+
+    https://github.com/snap-stanford/ogb/blob/master/examples/nodeproppred/arxiv/gnn.py
+    """
+
+    def __init__(
+        self,
+        num_classes: int,
+        hidden_filters: tp.Iterable[int] = (16,),
+        dropout_rate: float = 0.5,
+        name: tp.Optional[str] = None,
+    ):
+        super().__init__(name=name)
+        self.num_classes = num_classes
+        self.hidden_filters = hidden_filters
+        self.dropout_rate = dropout_rate
+
+    def __call__(
+        self,
+        graph: tp.Union[jnp.ndarray, JAXSparse],
+        node_features: jnp.ndarray,
+        is_training: tp.Optional[bool] = None,
+    ):
+        x = node_features
+        for f in self.hidden_filters:
+            x = GCN(f)(graph, x)
+            x = hk.BatchNorm(True, True, 0.9)(x, is_training=is_training)
+            x = jax.nn.relu(x)
+            x = dropout(x, self.dropout_rate, is_training=is_training)
+        logits = GCN(self.num_classes)(graph, x)
+        return logits
+
+
+@configurable
 class GCN(hk.Module):
     def __init__(
         self,
@@ -67,22 +103,23 @@ class GCN(hk.Module):
         dropout_rate: float = 0.5,
         activation: Activation = jax.nn.relu,
         final_activation: Activation = lambda x: x,
-        **kwargs,
+        residual_connections: bool = False,
+        name: tp.Optional[str] = None,
     ):
         if not hasattr(hidden_filters, "__iter__"):
             hidden_filters = (hidden_filters,)
-        super().__init__(**kwargs)
+        super().__init__(name=name)
         self.dropout_rate = dropout_rate
         self.num_classes = num_classes
         self.hidden_filters = tuple(hidden_filters)
         self.dropout_rate = dropout_rate
         self.activation = activation
         self.final_activation = final_activation
-        self.hidden_layers = tuple(
-            GraphConvolution(f, name=f"graph_conv_{i}")
-            for i, f in enumerate(hidden_filters)
-        )
-        self.final_layer = GraphConvolution(num_classes, name="graph_conv_final")
+        self.residual_connections = residual_connections
+        if residual_connections:
+            assert (
+                self.hidden_filters[:-1] == self.hidden_filters[1:]
+            ), self.hidden_filters
 
     def __call__(
         self,
@@ -90,11 +127,17 @@ class GCN(hk.Module):
         node_features: jnp.ndarray,
         is_training: tp.Optional[bool] = None,
     ):
-        for layer in self.hidden_layers:
-            node_features = dropout(node_features, self.dropout_rate, is_training)
-            node_features = layer(graph, node_features)
+        if self.residual_connections:
+            node_features = Linear(self.hidden_filters[0])(node_features)
             node_features = self.activation(node_features)
+        for f in self.hidden_filters:
+            n0 = node_features
+            node_features = dropout(node_features, self.dropout_rate, is_training)
+            node_features = GraphConvolution(f)(graph, node_features)
+            node_features = self.activation(node_features)
+            if self.residual_connections:
+                node_features = node_features + n0
         node_features = dropout(node_features, self.dropout_rate, is_training)
-        preds = self.final_layer(graph, node_features)
+        preds = GraphConvolution(self.num_classes)(graph, node_features)
         preds = self.final_activation(preds)
         return preds

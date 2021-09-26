@@ -1,0 +1,10 @@
+include "grax_config/single/data/physics.gin"
+include "igcn/config/impl/ip.gin"
+
+lr = 1e-2
+weight_decay = 0
+epsilon = 0.1
+dropout_rate = 0.8
+patience = 100
+steps = 1000
+fmt = "coo"

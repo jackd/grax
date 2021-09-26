@@ -34,6 +34,11 @@ def symmetric_renormalize(x: T) -> T:
 
 
 @configurable
+def transpose(x: COO) -> COO:
+    return ops.transpose(x)
+
+
+@configurable
 def add_identity(x: T, scale: float = 1.0) -> T:
     if isinstance(x, JAXSparse):
         return ops.add(x, ops.mul(utils.eye(x.shape[0], dtype=x.dtype), scale))
