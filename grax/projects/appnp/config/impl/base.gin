@@ -1,0 +1,52 @@
+import huf.configurables
+
+import grax.graph_utils.transforms
+import grax.hk_utils
+import grax.projects.appnp.data
+import grax.projects.appnp.modules
+import grax.projects.appnp.utils
+
+include "grax_config/single/data/transformed.gin"
+
+module_fun = @appnp.APPNP
+
+optimizer = @optax.chain_star()
+optax.chain_star.transforms = [
+    @appnp.utils.selective_additive_weight_decay(),
+    @optax.adam(),
+]
+
+node_features_transform = [
+    @grax.graph_utils.transforms.row_normalize,
+    @grax.graph_utils.transforms.to_format
+]
+grax.graph_utils.transforms.to_format.fmt = %fmt
+
+graph_transform = [
+    @grax.graph_utils.transforms.add_identity,
+    @grax.graph_utils.transforms.symmetric_normalize,
+]
+
+optax.adam.learning_rate = %lr
+appnp.utils.selective_additive_weight_decay.weight_decay = %weight_decay
+appnp.utils.selective_additive_weight_decay.predicate = @appnp.utils.named_predicate()
+
+appnp.utils.named_predicate.layer_name = 'linear_1'
+appnp.utils.named_predicate.variable_name = 'w'
+
+head_transform = @grax.hk_utils.mlp
+grax.hk_utils.mlp.hidden_filters = %filters
+grax.hk_utils.mlp.num_classes = %num_classes
+grax.hk_utils.mlp.dropout_rate = %dropout_rate
+grax.hk_utils.mlp.input_dropout_rate = %dropout_rate
+
+lr = 1e-2
+filters = 64
+dropout_rate = 0.5
+
+alpha = 0.1
+weight_decay = 5e-3
+fmt = "dense"
+
+steps = 2000
+patience = 500

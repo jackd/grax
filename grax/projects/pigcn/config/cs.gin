@@ -1,0 +1,6 @@
+import grax.config
+
+include "grax_config/single/data/cs.gin"
+include "pigcn/config/base.gin"
+
+override_path = '$GRAX_DATA/pigcn-data/CS.npz'

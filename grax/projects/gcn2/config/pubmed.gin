@@ -1,0 +1,10 @@
+import grax.config
+
+include "grax_config/single/data/pubmed.gin"
+include "gcn2/config/base.gin"
+
+num_hidden_layers = 16
+filters = 256
+lam = 0.4
+dropout_rate = 0.5
+conv_weight_decay = 5e-4

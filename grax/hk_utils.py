@@ -238,6 +238,7 @@ def mlp(
     input_dropout_rate: tp.Optional[float] = None,
     batch_norm_decay: float = 0.9,
     renorm_scale: bool = True,
+    w_init=None,
 ):
     assert (
         sum((use_batch_norm, use_layer_norm, use_renormalize, use_gathered_batch_norm))
@@ -250,7 +251,7 @@ def mlp(
 
     x = dropout(x, input_dropout_rate, is_training=is_training)
     for filters in hidden_filters:
-        x = Linear(filters)(x)
+        x = Linear(filters, w_init=w_init)(x)
         if use_batch_norm:
             x = hk.BatchNorm(renorm_scale, True, batch_norm_decay)(x, is_training)
         if use_layer_norm:
@@ -265,7 +266,7 @@ def mlp(
         x = activation(x)
         x = dropout(x, dropout_rate, is_training=is_training)
     if num_classes is not None:
-        x = hk.Linear(num_classes)(x)
+        x = hk.Linear(num_classes, w_init=w_init)(x)
     return final_activation(x)
 
 

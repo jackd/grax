@@ -1,0 +1,12 @@
+import grax.config
+import grax.projects.appnp.modules
+
+include "appnp/config/impl/base.gin"
+
+module_fun = @appnp.APPNP
+appnp.APPNP.head_transform = @grax.hk_utils.mlp
+appnp.APPNP.edge_dropout_rate = %dropout_rate
+appnp.APPNP.alpha = %alpha
+appnp.APPNP.num_propagations = %num_propagations
+
+num_propagations = 10

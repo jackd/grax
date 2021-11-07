@@ -1,0 +1,14 @@
+import grax.hk_utils
+import grax.projects.appnp.data
+import grax.projects.appnp.modules
+
+include "appnp/config/impl/base.gin"
+
+split_data/gin.singleton.constructor = @appnp.data.get_exact_split_data
+appnp.data.get_exact_split_data.data = @grax.problems.single.transformed_simple()
+appnp.data.get_exact_split_data.alpha = %alpha
+grax.problems.single.transformed_simple.as_split = False
+
+module_fun = @appnp.PPNP
+appnp.PPNP.head_transform = %head_transform
+appnp.PPNP.propagator_dropout_rate = %dropout_rate

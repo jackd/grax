@@ -8,7 +8,7 @@ import scipy.sparse as sp
 from jax.experimental.sparse.ops import COO, CSR, JAXSparse
 from spax import ops, utils
 
-T = tp.TypeVar("T", JAXSparse, jnp.ndarray)
+T = tp.TypeVar("T")  # JAXSparse, jnp.ndarray
 
 configurable = partial(gin.configurable, module="grax.graph_utils.transforms")
 

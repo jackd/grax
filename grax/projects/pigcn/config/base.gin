@@ -1,0 +1,49 @@
+import huf.configurables
+
+import grax.config
+import grax.graph_utils.transforms
+import grax.hk_utils
+import grax.projects.pigcn.data
+import grax.projects.pigcn.modules
+
+split_data = @gin.singleton()
+split_data/gin.singleton.constructor = @pigcn.data.preprocess_inputs
+# split_data/gin.singleton.constructor = @pigcn.data.hacked_inputs
+
+pigcn.data.preprocess_inputs.data = %base_data
+pigcn.data.preprocess_inputs.rank = %rank
+pigcn.data.preprocess_inputs.coeffs = %coeffs
+pigcn.data.preprocess_inputs.eig_tol = %eig_tol
+pigcn.data.preprocess_inputs.override_path = %override_path
+
+
+module_fun = @pigcn.PIGCN
+
+pigcn.PIGCN.num_classes = %num_classes
+pigcn.PIGCN.coeffs = %coeffs
+pigcn.PIGCN.hidden_filters = %filters
+pigcn.PIGCN.dropout_rate = %dropout_rate
+
+optimizer = @optax.chain_star()
+optax.chain_star.transforms = [
+    @pigcn.partitioned_additive_weight_decay(),
+    @optax.adam(),
+]
+
+pigcn.partitioned_additive_weight_decay.weight_decay = %weight_decay
+optax.adam.learning_rate = %lr
+
+
+coeffs = "independent-parts"
+rank = 200
+eig_tol = 0
+override_path = None
+
+lr = 5e-2
+weight_decay = 5e-4
+
+filters = (32,)
+dropout_rate = 0.5
+
+steps = 1000
+patience = 100  # prevents stopping
