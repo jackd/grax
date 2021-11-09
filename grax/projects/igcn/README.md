@@ -2,11 +2,11 @@
 
 ## TODO
 
-- This README.md
 - create-cache.gin - make it work!
 
 ## Example Usage
 
+The following examples and results from the hyperparameter search must be run from the `grax/projects/igcn/config/` directory. Alternatively, prepend non-`grax_config` gin files with `igcn/config/`.
 
 ```bash
 python -m grax grax_config/single/fit_many.gin impl/ip.gin computer.gin --bindings="smooth_only=False"
