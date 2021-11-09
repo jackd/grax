@@ -17,8 +17,8 @@
 ## Example Usage
 
 ```bash
-`python -m grax grax_config/single/fit_many.gin \
-    pigcn/config/cora.gin`
+python -m grax grax_config/single/fit_many.gin \
+    pigcn/config/cora.gin
 ```
 
 ## Notes

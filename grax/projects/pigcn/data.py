@@ -1,5 +1,4 @@
 import functools
-import os
 import typing as tp
 
 import gin
@@ -14,6 +13,16 @@ from grax.problems.single.data import SemiSupervisedSingle, SplitData
 from grax.projects.pigcn import utils
 
 configurable = functools.partial(gin.configurable, module="pigcn.data")
+
+
+def symmetric_normalize_numpy(adj):
+    # numerically different to grax.graph_utils.transofrms.symmetric_normalize
+    if not sp.issparse(adj):
+        adj = sp.coo_matrix((adj.data, (adj.row, adj.col)), shape=adj.shape)
+    d = np.squeeze(np.asarray(adj.sum(1)))
+    d = np.where(d == 0, np.zeros_like(d), 1 / np.sqrt(d))
+    data = adj.data * d[adj.row] * d[adj.col]
+    return sp.coo_matrix((data, (adj.row, adj.col)), shape=adj.shape)
 
 
 def get_spectral_data(
@@ -58,8 +67,10 @@ def graph_laplacian_decomposition(
     If `num_ev` is not `None`, only that many smallest eigenvalues are computed. The
     parameter tol is used for scipy.linalg.eigs (if it is called).
     """
+    if not sp.issparse(adj):
+        adj = sp.coo_matrix((adj.data, (adj.row, adj.col)), shape=adj.shape)
     n = adj.shape[0]
-    adj = sp.coo_matrix((adj.data, (adj.row, adj.col)), shape=adj.shape).tocsr()
+    adj = adj.tocsr()
     if num_ev is None or num_ev > n / 2:
         if sp.issparse(adj):
             adj = adj.toarray()
@@ -79,14 +90,8 @@ def graph_laplacian_decomposition(
             shifted_adj = (adj + sp.identity(adj.shape[0])).tocsr()
         else:
             shifted_adj = adj + np.identity(adj.shape[0])
-
         np.random.seed(0)
-        v0 = (
-            np.random.default_rng(0)
-            .normal(loc=1.0, scale=0.1, size=(n,))
-            .astype(shifted_adj.dtype)
-        )
-        np.random.seed(0)
+        v0 = np.random.uniform(size=(n,)).astype(shifted_adj.dtype)
         w, u = sp.linalg.eigsh(shifted_adj, num_ev, tol=tol, v0=v0)
         # np.random.seed(0)
         # w_, u_ = sp.linalg.eigsh(shifted_adj, num_ev, tol=tol, v0=v0)
@@ -109,23 +114,6 @@ def preconvolve_input(spectral_data: utils.SpectralData, features: jnp.ndarray, 
     X = spax.ops.to_dense(features)  # just in case
     zero_u, nonzero_u, nonzero_w, eigengap = spectral_data
     del spectral_data, features
-
-    # zero_U_X = zero_u.T @ X
-    # nonzero_U_X = nonzero_u.T @ X
-
-    # result = []
-    # for alpha, beta, gamma in coeffs:
-    #     s = 0
-    #     if alpha != 0 or gamma != 0:
-    #         s += (alpha - gamma * eigengap) * (zero_u @ zero_U_X)
-    #     if beta != 0 or gamma != 0:
-    #         s += nonzero_u @ (
-    #             eigengap * (beta / nonzero_w[:, np.newaxis] - gamma) * nonzero_U_X
-    #         )
-    #     if gamma != 0:
-    #         s += eigengap * gamma * X
-    #     result.append(s)
-    # return result
 
     zero_U_X = zero_u.T @ X
     nonzero_U_X = nonzero_u.T @ X
@@ -158,10 +146,10 @@ def preprocess_inputs(
     eig_tol: tp.Union[float, int] = 0,
     eig_threshold: float = 1e-6,
     precompute_u0: bool = False,
-    override_path: tp.Optional[str] = None,
 ):
     if isinstance(coeffs, str):
         coeffs = utils.get_coefficient_preset(coeffs)
+    # adj = symmetric_normalize_numpy(data.graph)
     adj = symmetric_normalize(data.graph)
     if precompute_u0:
         u0 = precompute_u0_zero(adj.row, adj.col)
@@ -173,32 +161,14 @@ def preprocess_inputs(
     w, u = graph_laplacian_decomposition(  # pylint: disable=unpacking-non-sequence
         adj, num_ev, tol=eig_tol, precomputed_u0=u0
     )
-
-    if override_path is not None:
-        override_path = os.path.expanduser(os.path.expandvars(override_path))
-        override_data = np.load(override_path)
-        override_data = {k: jnp.asarray(v) for k, v in override_data.items()}
-        features = override_data.pop("preconvolved_input")
-        spectral_data = utils.SpectralData(**override_data)
+    spectral_data = get_spectral_data(w, u, eig_threshold, max_rank=rank)
+    features = data.node_features
+    # undo dgl's automatic row-normalization
+    if isinstance(features, jnp.ndarray):
+        features = jnp.where(features == 0, features, jnp.ones_like(features))
     else:
-        spectral_data = get_spectral_data(w, u, eig_threshold, max_rank=rank)
-        features = preconvolve_input(spectral_data, data.node_features, coeffs)
-
-    # # HACK
-    # hacked_data = hacked_inputs()
-    # spectral_data, features, _ = hacked_data[0][0][0]
-
-    # r = min(spectral_data.nonzero_w.size, spectral_data_.nonzero_w.size)
-    # print(
-    #     np.stack(
-    #         (spectral_data.nonzero_w.to_py()[:r], spectral_data_.nonzero_w.to_py()[:r]),
-    #         axis=1,
-    #     )
-    # )
-    # print(spectral_data.nonzero_w.size, spectral_data_.nonzero_w.size)
-    # print(spectral_data.zero_u.shape, spectral_data_.zero_u.shape)
-    # exit()
-
+        features = spax.ops.map_data(features, jnp.ones_like)
+    features = preconvolve_input(spectral_data, features, coeffs)
     features = jnp.concatenate(features, axis=-1)
 
     def get_example(ids):
@@ -208,48 +178,4 @@ def preprocess_inputs(
         (get_example(data.train_ids),),
         (get_example(data.validation_ids),),
         (get_example(data.test_ids),),
-    )
-
-
-@configurable
-def hacked_inputs(path: str) -> SplitData:
-    data = np.load(path)
-    (
-        zero_U,
-        nonzero_U,
-        nonzero_w,
-        eigengap,
-        preconvolved_input,
-        train_mask,
-        validation_mask,
-        test_mask,
-        labels,
-    ) = (
-        jnp.asarray(data[k])
-        for k in (
-            "zero_U",
-            "nonzero_U",
-            "nonzero_w",
-            "eigengap",
-            "preconvolved_input",
-            "train_mask",
-            "val_mask",
-            "test_mask",
-            "y",
-        )
-    )
-    spectral_data = utils.SpectralData(zero_U, nonzero_U, nonzero_w, eigengap)
-    # features = [f for f in preconvolved_input]
-    features = jnp.concatenate(preconvolved_input, axis=-1)
-    train_ids, validation_ids, test_ids = (
-        jnp.where(m) for m in (train_mask, validation_mask, test_mask)
-    )
-
-    def get_example(ids):
-        return (spectral_data, features, ids), labels[ids]
-
-    return SplitData(
-        (get_example(train_ids),),
-        (get_example(validation_ids),),
-        (get_example(test_ids),),
     )

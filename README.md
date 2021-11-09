@@ -2,13 +2,31 @@
 
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-This project aims to provide re-implementations of neural networks in [jax][jax], as close to the original author's implementations as practical. Known deviations from original implementation logic are documented.
+This project aims to provide re-implementations of neural networks in [jax][jax], as close to the original author's implementations as practical. Apart from different default initializations,known deviations from original implementation logic are documented.
+
+Implementations are in their own [projects](grax/projects). Current implementations include:
+
+- [APPNP](grax/projects/appnp): Approximate Personalized Propagation of Neural Predictions
+- [DAGNN](grax/projects/dagnn): Deep Adaptive Graph Neural Networks
+- [DEQ_GCN](grax/projects/deq_gcn): (Stalled WIP) Deep Equilibrium Graph Convolution Networks
+- [GAT](grax/projects/gat): Graph Attention Networks
+- [GCN](grax/projects/gcn): Graph Convolution Networks
+- [GCN2](grax/projects/gcn2): Graph Convolution Networks 2
+- [IGAT](grax/projects/igat): (Stalled WIP) Inverse Graph Attention Networks
+- [igcn](graph/projects/igcn): Inverse Graph Convolution Networks
+- [pigcn](graph/projects/pigcn): Pseudo-inverse Graph Convolution Networks
+- [sgc](graph/projects/sgc): Simple Graph Convolution Networks
+
+See the relevant subdirectory `README.md` for more details and example usage.
+
+## Dependencies
 
 This project uses the following large open-source projects:
 
 - [jax][jax] for performant low-level operations;
 - [haiku][haiku] for parameter / state management;
 - [optax][optax] for optimizer implementations; and
+- [gin][gin] for configuration.
 
 Additional functionality is provided in smaller repositories:
 
@@ -81,3 +99,4 @@ git commit --no-verify -m "commit message"
 [jax]: https://github.com/google/jax
 [haiku]: https://github.com/deepmind/dm-haiku
 [optax]: https://github.com/deepmind/optax
+[gin]: https://github.com/google/gin

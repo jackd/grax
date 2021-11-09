@@ -1,0 +1,6 @@
+import grax.config
+
+include "grax_config/single/data/cora.gin"
+include "sgc/config/base.gin"
+
+weight_decay = 1.3026973714043257e-05

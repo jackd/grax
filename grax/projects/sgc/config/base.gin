@@ -1,0 +1,44 @@
+import huf.configurables
+
+import grax.config
+import grax.graph_utils.transforms
+import grax.hk_utils
+import grax.projects.sgc.data
+import grax.projects.sgc.modules
+
+include "grax_config/single/data/transformed.gin"
+
+split_data = @gin.singleton()
+split_data/gin.singleton.constructor = @sgc.data.preprocess_inputs
+sgc.data.preprocess_inputs.data = @grax.problems.single.transformed_simple()
+sgc.data.preprocess_inputs.degree = %degree
+sgc.data.preprocess_inputs.fmt = %fmt
+
+grax.problems.single.transformed_simple.as_split = False
+
+graph_transform = [
+    @grax.graph_utils.transforms.add_identity,
+    @grax.graph_utils.transforms.symmetric_normalize,
+]
+node_features_transform = @grax.graph_utils.transforms.row_normalize
+
+module_fun = @sgc.SGC
+
+sgc.SGC.num_classes = %num_classes
+
+optimizer = @optax.chain_star()
+optax.chain_star.transforms = [
+    @optax.additive_weight_decay(),
+    @optax.adam(),
+]
+
+optax.additive_weight_decay.weight_decay = %weight_decay
+optax.adam.learning_rate = %lr
+
+fmt = "dense"
+degree = 2
+lr = 0.2
+weight_decay = 5e-6
+
+steps = 100
+grax.huf_utils.get_fit_callbacks.early_stopping = None

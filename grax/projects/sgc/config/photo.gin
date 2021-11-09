@@ -1,6 +1,6 @@
 import grax.config
 
 include "grax_config/single/data/photo.gin"
-include "pigcn/config/base.gin"
+include "sgc/config/base.gin"
 
 largest_component = True

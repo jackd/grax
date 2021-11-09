@@ -23,7 +23,7 @@ def row_normalize(x: T, ord=1) -> T:  # pylint: disable=redefined-builtin
 
 @configurable
 def symmetric_normalize(x: T) -> T:
-    factor = ops.norm(x, axis=1, ord=1) ** -0.5
+    factor = 1 / jnp.sqrt(ops.norm(x, axis=1, ord=1))
     return ops.scale_columns(ops.scale_rows(x, factor), factor)
 
 

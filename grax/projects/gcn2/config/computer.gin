@@ -1,0 +1,10 @@
+import grax.config
+
+include "grax_config/single/data/computer.gin"
+include "gcn2/config/base.gin"
+
+num_hidden_layers = 32
+filters = 256
+lam = 0.6
+dropout_rate = 0.7
+largest_component = True

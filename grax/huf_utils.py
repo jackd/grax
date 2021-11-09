@@ -168,8 +168,11 @@ def benchmark_model(model: Model, data: SplitData, seed: int = 0):
             ]
 
     # pylint: enable=expression-not-assigned
-    benchmark.register(train_benchmark, name="UNTRUSTWORTHY")
-    benchmark.register(train_benchmark, name="train_benchmark1")
+    benchmark.register(train_benchmark, name="UNTRUSTWORTHY-train")
+    benchmark.register(train_benchmark, name="train_benchmark")
+    benchmark.register(
+        partial(test_benchmark, data=validation_data), name="UNTRUSTWORTHY-validation"
+    )
     benchmark.register(
         partial(test_benchmark, data=validation_data), name="validation_benchmark"
     )

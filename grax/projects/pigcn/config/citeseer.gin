@@ -4,4 +4,3 @@ include "grax_config/single/data/citeseer.gin"
 include "pigcn/config/base.gin"
 
 eig_tol = 1e-7  # does not converge with default 0
-override_path = '$GRAX_DATA/pigcn-data/Citeseer.npz'

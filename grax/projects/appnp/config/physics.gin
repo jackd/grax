@@ -1,4 +1,3 @@
 import grax.config
 
 include "grax_config/single/data/physics.gin"
-include "pigcn/config/base.gin"

@@ -1,0 +1,6 @@
+import grax.config
+
+include "grax_config/single/data/pubmed.gin"
+include "sgc/config/base.gin"
+
+weight_decay = 7.403929623323868e-05

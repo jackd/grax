@@ -1,6 +1,4 @@
 import grax.config
 
 include "grax_config/single/data/computer.gin"
-include "pigcn/config/base.gin"
-
 largest_component = True
