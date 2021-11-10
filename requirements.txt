@@ -1,7 +1,6 @@
 dm-haiku
 optax
 gin-config
-networkx
 dgl
 h5py
 tqdm

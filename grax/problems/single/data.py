@@ -8,8 +8,8 @@ import gin
 import h5py
 import jax
 import jax.numpy as jnp
-import networkx as nx
 import numpy as np
+import scipy.sparse as sp
 import spax
 from huf.types import PRNGKey
 from jax.experimental.sparse.ops import COO, JAXSparse
@@ -181,26 +181,44 @@ def subgraph(
 
 
 def get_largest_component_indices(
-    graph: COO, dtype: jnp.dtype = jnp.int32
-) -> SemiSupervisedSingle:
-    # create nx graph
-    g = nx.Graph()
-    graph = spax.ops.to_coo(graph)
-    coords = jnp.stack((graph.row, graph.col), axis=1)
-    for u, v in coords:
-        g.add_edge(u, v)
-    if nx.is_connected(g):
-        return jnp.arange(graph.row.size, dtype=dtype)
-    # enumerate used for tie-breaking purposes
-    _, _, component = max(
-        ((len(c), i, c) for i, c in enumerate(nx.connected_components(g)))
+    graph: COO, dtype: jnp.dtype = jnp.int32, directed: bool = True, connection="weak"
+) -> jnp.ndarray:
+    # using scipy.sparse.csgraph.connected_components
+    graph = spax.ops.to_csr(graph)
+    graph = sp.csr_matrix((graph.data, graph.indices, graph.indptr), shape=graph.shape)
+    ncomponents, labels = sp.csgraph.connected_components(
+        graph, return_labels=True, directed=directed, connection=connection
     )
-    return jnp.asarray(sorted(component), dtype=dtype)
+    if ncomponents == 1:
+        return jnp.arange(graph.shape[0], dtype=jnp.dtype)
+    sizes = [np.count_nonzero(labels == i) for i in range(ncomponents)]
+    i = np.argmax(sizes)
+    (indices,) = np.where(labels == i)
+    return jnp.asarray(indices, dtype)
+
+
+# def get_largest_component_indices(
+#     graph: COO, dtype: jnp.dtype = jnp.int32
+# ) -> jnp.ndarray:
+#     # create nx graph
+#     g = nx.Graph()
+#     graph = spax.ops.to_coo(graph)
+#     coords = jnp.stack((graph.row, graph.col), axis=1)
+#     for u, v in coords:
+#         g.add_edge(u, v)
+#     if nx.is_connected(g):
+#         return jnp.arange(graph.row.size, dtype=dtype)
+#     # enumerate used for tie-breaking purposes
+#     _, _, component = max(
+#         ((len(c), i, c) for i, c in enumerate(nx.connected_components(g)))
+#     )
+#     return jnp.asarray(sorted(component), dtype=dtype)
 
 
 @configurable
-def get_largest_component(single: SemiSupervisedSingle):
-    return subgraph(single, get_largest_component_indices(single.graph))
+def get_largest_component(single: SemiSupervisedSingle) -> SemiSupervisedSingle:
+    indices = get_largest_component_indices(single.graph)
+    return subgraph(single, indices)
 
 
 def _load_dgl_graph(dgl_example, make_symmetric=False):
