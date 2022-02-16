@@ -17,7 +17,7 @@ configurable = functools.partial(gin.configurable, module="gcn2")
 
 @configurable
 def default_w_init(shape, dtype):
-    features_out, _ = shape
+    _, features_out = shape
     std = 1 / np.sqrt(float(features_out))
     return hk.initializers.RandomUniform(-std, std)(shape, dtype)
 
@@ -75,7 +75,7 @@ class GraphConvolution(hk.Module):
             r = support
         w = hk.get_parameter(
             "w",
-            shape=(self.filters, support.shape[1]),
+            shape=(support.shape[1], self.filters),
             dtype=support.dtype,
             init=self.w_init,
         )
