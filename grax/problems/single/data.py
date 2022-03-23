@@ -29,12 +29,20 @@ def ids_to_mask(ids: jnp.ndarray, size: int, dtype=bool):
     return jnp.zeros((size,), dtype).at[ids].set(jnp.ones((ids.size,), dtype))
 
 
+def ids_to_weights(
+    ids: jnp.ndarray, size: int, normalize: bool = True, dtype=jnp.float32
+):
+    assert ids.ndim == 1
+    value = 1 / size if normalize else 1
+    return jnp.zeros((size,), dtype).at[ids].set(value)
+
+
 @dataclass
 class SemiSupervisedSingle:
     """Data class for a single sparsely labelled graph."""
 
     # Node features might be np.ndarrays to avoid excessive memory requirements
-    node_features: tp.Union[jnp.ndarray, JAXSparse, np.ndarray]  # [N, F]
+    node_features: tp.Union[jnp.ndarray, JAXSparse, np.ndarray, tp.Tuple]  # [N, F]
     graph: JAXSparse  # [N, N]
     labels: jnp.ndarray  # [N]
     train_ids: tp.Optional[jnp.ndarray]  # [n_train << N]
@@ -70,15 +78,21 @@ class SemiSupervisedSingle:
         return SemiSupervisedSingle(**d)
 
     @property
-    def train_mask(self) -> jnp.ndarray:
+    def train_mask(self) -> tp.Optional[jnp.ndarray]:
+        if self.train_ids is None:
+            return None
         return ids_to_mask(self.train_ids, self.num_nodes)
 
     @property
-    def validation_mask(self) -> jnp.ndarray:
+    def validation_mask(self) -> tp.Optional[jnp.ndarray]:
+        if self.validation_ids is None:
+            return None
         return ids_to_mask(self.validation_ids, self.num_nodes)
 
     @property
-    def test_mask(self) -> jnp.ndarray:
+    def test_mask(self) -> tp.Optional[jnp.ndarray]:
+        if self.test_ids is None:
+            return None
         return ids_to_mask(self.test_ids, self.num_nodes)
 
     @property
@@ -124,7 +138,8 @@ def symmetric_normalize_with_row_sum(single: SemiSupervisedSingle):
 def remove_back_edges(single: SemiSupervisedSingle) -> SemiSupervisedSingle:
     nn = single.num_nodes
     lil = [[] for _ in range(nn)]
-    for r, c in zip(single.graph.row.to_py(), single.graph.col.to_py()):
+    graph = ops.to_coo(single.graph)
+    for r, c in zip(graph.row.to_py(), graph.col.to_py()):
         # lil[r].append(c)
         lil[c].append(r)
     algorithms.remove_back_edges(lil)
@@ -180,20 +195,60 @@ def subgraph(
     )
 
 
-def get_largest_component_indices(
-    graph: COO, dtype: jnp.dtype = jnp.int32, directed: bool = True, connection="weak"
-) -> jnp.ndarray:
+class ComponentIndices(tp.NamedTuple):
+    num_components: int
+    labels: jnp.ndarray
+
+
+def get_component_indices(
+    graph: JAXSparse,
+    dtype: jnp.dtype = jnp.int32,
+    directed: bool = True,
+    connection="weak",
+) -> ComponentIndices:
+    # import networkx as nx
+
+    # g = nx.Graph()
+    # for i, j in zip(graph.row, graph.col):
+    #     g.add_edge(i, j)
+    # components = list(nx.connected_components(g))
+    # print(len(components))
+    # exit()
     # using scipy.sparse.csgraph.connected_components
     graph = spax.ops.to_csr(graph)
     graph = sp.csr_matrix((graph.data, graph.indices, graph.indptr), shape=graph.shape)
     ncomponents, labels = sp.csgraph.connected_components(
         graph, return_labels=True, directed=directed, connection=connection
     )
+    return ComponentIndices(ncomponents, jnp.asarray(labels, dtype=dtype))
+
+
+def get_component_masks(
+    graph: JAXSparse, directed: bool = True, connection="weak"
+) -> jnp.ndarray:
+    """Get [num_nodes, num_components] bool mask."""
+    num_components, labels = get_component_indices(
+        graph, directed=directed, connection=connection
+    )
+    num_nodes = graph.shape[0]
+    base = jnp.zeros((num_nodes, num_components), dtype=bool)
+    return base.at[jnp.arange(num_nodes), labels].set(True)
+
+
+def get_largest_component_indices(
+    graph: JAXSparse,
+    dtype: jnp.dtype = jnp.int32,
+    directed: bool = True,
+    connection="weak",
+) -> jnp.ndarray:
+    ncomponents, labels = get_component_indices(
+        graph, dtype=dtype, directed=directed, connection=connection
+    )
     if ncomponents == 1:
-        return jnp.arange(graph.shape[0], dtype=jnp.dtype)
-    sizes = [np.count_nonzero(labels == i) for i in range(ncomponents)]
-    i = np.argmax(sizes)
-    (indices,) = np.where(labels == i)
+        return jnp.arange(graph.shape[0], dtype=dtype)
+    sizes = jnp.asarray([jnp.count_nonzero(labels == i) for i in range(ncomponents)])
+    i = jnp.argmax(sizes)
+    (indices,) = jnp.where(labels == i)
     return jnp.asarray(indices, dtype)
 
 
@@ -279,7 +334,7 @@ _dgl_constructors = {
 
 
 @configurable
-def get_data(name: str, **kwargs):
+def get_data(name: str, **kwargs) -> SemiSupervisedSingle:
     if name in _dgl_constructors:
         return dgl_data(name, **kwargs)
     if name.startswith("ogbn-"):

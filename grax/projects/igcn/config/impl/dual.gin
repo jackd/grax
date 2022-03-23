@@ -1,0 +1,11 @@
+transform = (
+    @igcn.data.propagate_features,
+)
+
+igcn.data.propagate_features.propagator_fun = @input/igcn.data.get_propagator
+igcn.data.propagate_features.concat = %concat_propagated_features
+
+concat_propagated_features = True
+input/igcn.data.get_propagator.epsilon = %input_epsilon
+
+input_epsilon = %epsilon

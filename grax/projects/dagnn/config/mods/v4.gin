@@ -1,0 +1,2 @@
+include "dagnn/config/mods/v3.gin"
+scale_method = 'most'

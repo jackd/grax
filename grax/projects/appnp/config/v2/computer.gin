@@ -1,0 +1,12 @@
+import grax.config
+
+include "grax_config/single/data/computer.gin"
+include "appnp/config/v2/base.gin"
+
+largest_component = True
+weight_decay = 5e-5
+dropout_rate = 0.5
+num_propagations = 5
+
+steps = 3000
+patience = 300

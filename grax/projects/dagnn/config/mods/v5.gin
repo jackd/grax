@@ -1,0 +1,6 @@
+import grax.graph_utils.transforms
+
+graph_transform = [
+    @grax.graph_utils.transforms.symmetric_normalize,
+    @grax.graph_utils.transforms.scale,
+]

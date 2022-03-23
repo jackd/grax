@@ -1,0 +1,9 @@
+import grax.config
+
+include "grax_config/single/data/photo.gin"
+include "appnp/config/v2/base.gin"
+
+largest_component = True
+weight_decay = 5e-4
+dropout_rate = 0.5
+num_propagations = 5

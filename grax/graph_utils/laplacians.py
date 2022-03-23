@@ -7,10 +7,10 @@ from jax.experimental.sparse.ops import JAXSparse
 from spax import ops
 from spax.utils import diag, eye
 
-configurable = partial(gin.configurable, module="grax.graph_utils.laplacians")
+register = partial(gin.register, module="grax.graph_utils.laplacians")
 
 
-@configurable
+@register
 def laplacian(
     adj: JAXSparse, shift: float = 0.0, return_row_sum: bool = True,
 ) -> tp.Union[JAXSparse, tp.Tuple[JAXSparse, jnp.ndarray]]:
@@ -37,7 +37,7 @@ def laplacian(
     return L
 
 
-@configurable
+@register
 def normalized_laplacian(
     adj: tp.Union[JAXSparse, jnp.ndarray], shift: float = 0.0, return_row_sum=True
 ) -> tp.Union[JAXSparse, tp.Tuple[JAXSparse, jnp.ndarray]]:

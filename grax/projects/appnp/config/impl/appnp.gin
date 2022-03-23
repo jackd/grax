@@ -5,8 +5,9 @@ include "appnp/config/impl/base.gin"
 
 module_fun = @appnp.APPNP
 appnp.APPNP.head_transform = @grax.hk_utils.mlp
-appnp.APPNP.edge_dropout_rate = %dropout_rate
+appnp.APPNP.edge_dropout_rate = %edge_dropout_rate
 appnp.APPNP.alpha = %alpha
 appnp.APPNP.num_propagations = %num_propagations
 
+edge_dropout_rate = %dropout_rate
 num_propagations = 10

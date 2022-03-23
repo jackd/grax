@@ -1,0 +1,7 @@
+include "igcn/config/impl/lp-lazy.gin"
+
+igcn.data.get_propagator.jl_factor = %jl_factor
+igcn.data.get_propagator.jl_seed = %jl_seed
+
+jl_factor = 1
+jl_seed = 0

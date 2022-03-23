@@ -22,13 +22,17 @@ graph_transform = []
 split_data/gin.singleton.constructor = @igcn.data.get_split_data
 
 igcn.data.get_split_data.data = @grax.problems.single.transformed_simple()
-igcn.data.get_split_data.epsilon = %epsilon
-igcn.data.get_split_data.tol = %tol
-igcn.data.get_split_data.maxiter = %maxiter
-igcn.data.get_split_data.rescale = %rescale
+igcn.data.get_split_data.propagator_fun = @igcn.data.get_propagator
 igcn.data.get_split_data.train_fun = %train_fun
 igcn.data.get_split_data.validation_fun = %validation_fun
 igcn.data.get_split_data.test_fun = %test_fun
+
+igcn.data.get_propagator.deflate = %deflate
+igcn.data.get_propagator.epsilon = %epsilon
+igcn.data.get_propagator.tol = %tol
+igcn.data.get_propagator.maxiter = %maxiter
+igcn.data.get_propagator.rescale = %rescale
+igcn.data.get_propagator.rank = %rank
 
 grax.problems.single.transformed_simple.as_split = False
 rescale = False
@@ -56,3 +60,5 @@ tol = 1e-5
 normalize_features = True
 fmt = "dense"
 maxiter = None
+deflate = False
+rank = None

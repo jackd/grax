@@ -11,21 +11,274 @@ The following examples and results from the hyperparameter search must be run fr
 ```bash
 python -m grax grax_config/single/fit_many.gin impl/ip.gin computer.gin --bindings="smooth_only=False"
 python -m grax grax_config/single/fit_many.gin impl/lp.gin computer.gin --bindings="smooth_only=False"
+python -m grax grax_config/single/fit_many.gin impl/lp-lazy.gin cora.gin
+# dt         = 22.48556 +- 3.22660
+# test_acc   = 0.84540 +- 0.00364
+# test_loss  = 0.62686 +- 0.00810
+# train_acc  = 0.87000 +- 0.03583
+# train_loss = 0.52143 +- 0.07145
+# val_acc    = 0.82360 +- 0.00398
+# val_loss   = 0.66388 +- 0.00799
+python -m grax grax_config/single/fit_many.gin impl/lp.gin cora.gin
+# dt         = 20.54200 +- 2.94736
+# test_acc   = 0.84530 +- 0.00415
+# test_loss  = 0.62687 +- 0.00800
+# train_acc  = 0.86286 +- 0.03467
+# train_loss = 0.53590 +- 0.06786
+# val_acc    = 0.82500 +- 0.00402
+# val_loss   = 0.66354 +- 0.00837
+python -m grax grax_config/single/fit_many.gin impl/lp.gin pubmed.gin
 ```
 
-```txt
-dt         = 1.74865 +- 1.20948
-test_acc   = 0.79869 +- 0.00857
-test_loss  = 0.72518 +- 0.02491
-train_acc  = 0.86600 +- 0.01921
-train_loss = 0.42213 +- 0.03335
-val_acc    = 0.89733 +- 0.00554
-val_loss   = 0.57114 +- 0.01513
+## Batched
+
+### Cora
+
+`num_nodes = 2708`
+
+```bash
+python -m grax grax_config/single/fit_many.gin impl/lp-batched.gin cora.gin --bindings='batch_size=16'
+# dt         = 125.35804 +- 55.85301
+# test_acc   = 0.80590 +- 0.01675
+# test_loss  = 0.88171 +- 0.01339
+# train_acc  = 0.64850 +- 0.00446
+# train_loss = 1.19062 +- 0.00855
+# val_acc    = 0.78740 +- 0.01197
+# val_loss   = 0.90473 +- 0.01341
+python -m grax grax_config/single/fit_many.gin impl/lp-batched.gin cora.gin --bindings='batch_size=32'
+# dt         = 60.14582 +- 13.71049
+# test_acc   = 0.80420 +- 0.01478
+# test_loss  = 0.87107 +- 0.01153
+# train_acc  = 0.64994 +- 0.00573
+# train_loss = 1.18648 +- 0.01131
+# val_acc    = 0.78380 +- 0.01398
+# val_loss   = 0.89418 +- 0.00913
+python -m grax grax_config/single/fit_many.gin impl/lp-batched.gin cora.gin --bindings='batch_size=64'
+# dt         = 33.49598 +- 8.68276
+# test_acc   = 0.80770 +- 0.01371
+# test_loss  = 0.85637 +- 0.01555
+# train_acc  = 0.65384 +- 0.01048
+# train_loss = 1.18074 +- 0.01886
+# val_acc    = 0.79080 +- 0.01250
+# val_loss   = 0.87939 +- 0.01182
+python -m grax grax_config/single/fit_many.gin impl/lp-batched.gin cora.gin --bindings='batch_size=128'
+# dt         = 38.37931 +- 11.20816
+# test_acc   = 0.81910 +- 0.01234
+# test_loss  = 0.81037 +- 0.00657
+# train_acc  = 0.66336 +- 0.00718
+# train_loss = 1.15162 +- 0.01664
+# val_acc    = 0.80020 +- 0.01049
+# val_loss   = 0.83496 +- 0.00669
+python -m grax grax_config/single/fit_many.gin impl/lp-batched.gin cora.gin --bindings='batch_size=256'
+# dt         = 23.50471 +- 3.92010
+# test_acc   = 0.82230 +- 0.01433
+# test_loss  = 0.75734 +- 0.01136
+# train_acc  = 0.68293 +- 0.00899
+# train_loss = 1.10865 +- 0.01757
+# val_acc    = 0.79960 +- 0.01802
+# val_loss   = 0.78188 +- 0.00992
+python -m grax grax_config/single/fit_many.gin impl/lp-batched.gin cora.gin --bindings='batch_size=512'
+# dt         = 19.85169 +- 5.89477
+# test_acc   = 0.83310 +- 0.00988
+# test_loss  = 0.68101 +- 0.00773
+# train_acc  = 0.72714 +- 0.01838
+# train_loss = 1.01707 +- 0.02617
+# val_acc    = 0.81360 +- 0.00709
+# val_loss   = 0.71154 +- 0.00626
+python -m grax grax_config/single/fit_many.gin impl/lp-batched.gin cora.gin --bindings='batch_size=1024'
+# dt         = 21.21763 +- 3.23388
+# test_acc   = 0.84640 +- 0.00514
+# test_loss  = 0.61433 +- 0.00760
+# train_acc  = 0.78964 +- 0.02487
+# train_loss = 0.84423 +- 0.05563
+# val_acc    = 0.82260 +- 0.00810
+# val_loss   = 0.65008 +- 0.00786
+python -m grax grax_config/single/fit_many.gin impl/lp-batched.gin cora.gin --bindings='batch_size=2048'
+# dt         = 20.04771 +- 4.64641
+# test_acc   = 0.84810 +- 0.00534
+# test_loss  = 0.61407 +- 0.00791
+# train_acc  = 0.86500 +- 0.01981
+# train_loss = 0.59586 +- 0.04895
+# val_acc    = 0.82040 +- 0.00388
+# val_loss   = 0.65277 +- 0.00598
+```
+
+### PubMed
+
+`num_nodes = 19717`
+
+```bash
+python -m grax grax_config/single/fit_many.gin impl/lp-batched.gin pubmed.gin --bindings='batch_size=128'
+# dt         = 93.33674 +- 29.67713
+# test_acc   = 0.77770 +- 0.00833
+# test_loss  = 0.71538 +- 0.01075
+# train_acc  = 0.77937 +- 0.04881
+# train_loss = 0.62634 +- 0.08376
+# val_acc    = 0.77480 +- 0.00749
+# val_loss   = 0.69600 +- 0.00793
+python -m grax grax_config/single/fit_many.gin impl/lp-batched.gin pubmed.gin --bindings='batch_size=256'
+# dt         = 45.91387 +- 14.37818
+# test_acc   = 0.76100 +- 0.01345
+# test_loss  = 0.69665 +- 0.02339
+# train_acc  = 0.68860 +- 0.09060
+# train_loss = 0.77499 +- 0.15036
+# val_acc    = 0.76160 +- 0.01711
+# val_loss   = 0.67922 +- 0.01944
+python -m grax grax_config/single/fit_many.gin impl/lp-batched.gin pubmed.gin --bindings='batch_size=512'
+# dt         = 25.46545 +- 3.25164
+# test_acc   = 0.75520 +- 0.01573
+# test_loss  = 0.71112 +- 0.01688
+# train_acc  = 0.69557 +- 0.11367
+# train_loss = 0.76278 +- 0.16444
+# val_acc    = 0.75560 +- 0.01335
+# val_loss   = 0.69555 +- 0.01197
+python -m grax grax_config/single/fit_many.gin impl/lp-batched.gin pubmed.gin --bindings='batch_size=1024'
+# dt         = 9.88186 +- 2.04099
+# test_acc   = 0.75410 +- 0.01407
+# test_loss  = 0.69018 +- 0.02162
+# train_acc  = 0.74693 +- 0.04759
+# train_loss = 0.72596 +- 0.09973
+# val_acc    = 0.75400 +- 0.01625
+# val_loss   = 0.67699 +- 0.02282
+python -m grax grax_config/single/fit_many.gin impl/lp-batched.gin pubmed.gin --bindings='batch_size=1024'
+# dt         = 5.39840 +- 1.50508
+# test_acc   = 0.74830 +- 0.01207
+# test_loss  = 0.67756 +- 0.01159
+# train_acc  = 0.78759 +- 0.03063
+# train_loss = 0.67594 +- 0.07866
+# val_acc    = 0.75120 +- 0.01201
+# val_loss   = 0.66425 +- 0.01014
+python -m grax grax_config/single/fit_many.gin impl/lp-batched.gin pubmed.gin --bindings='batch_size=2048'
+# dt         = 5.38788 +- 1.35516
+# test_acc   = 0.74830 +- 0.01207
+# test_loss  = 0.67756 +- 0.01159
+# train_acc  = 0.78759 +- 0.03063
+# train_loss = 0.67594 +- 0.07866
+# val_acc    = 0.75120 +- 0.01201
+# val_loss   = 0.66425 +- 0.01014
+python -m grax grax_config/single/fit_many.gin impl/lp-batched.gin pubmed.gin --bindings='batch_size=4096'
+# dt         = 4.04052 +- 1.43105
+# test_acc   = 0.78060 +- 0.01275
+# test_loss  = 0.63960 +- 0.01856
+# train_acc  = 0.87167 +- 0.02540
+# train_loss = 0.47768 +- 0.07391
+# val_acc    = 0.78540 +- 0.01692
+# val_loss   = 0.60662 +- 0.00718
+python -m grax grax_config/single/fit_many.gin impl/lp-batched.gin pubmed.gin --bindings='batch_size=8192'
+# dt         = 3.67309 +- 1.49880
+# test_acc   = 0.80150 +- 0.00555
+# test_loss  = 0.58106 +- 0.00809
+# train_acc  = 0.91333 +- 0.03210
+# train_loss = 0.33866 +- 0.05008
+# val_acc    = 0.81860 +- 0.00607
+# val_loss   = 0.53774 +- 0.00444
+
+## BASELINE
+python -m grax grax_config/single/fit_many.gin impl/lp.gin pubmed.gin
+# dt         = 3.30934 +- 1.16011
+# test_acc   = 0.80630 +- 0.00377
+# test_loss  = 0.53617 +- 0.00613
+# train_acc  = 0.95833 +- 0.01344
+# train_loss = 0.20935 +- 0.03242
+# val_acc    = 0.82040 +- 0.00857
+# val_loss   = 0.49678 +- 0.00464
+```
+
+`smooth_only=False`
+
+```bash
+python -m grax grax_config/single/fit_many.gin impl/lp-batched.gin pubmed.gin --bindings='
+smooth_only=False
+batch_size=128
+'
+# dt         = 77.29279 +- 13.26445
+# test_acc   = 0.77670 +- 0.00747
+# test_loss  = 0.62530 +- 0.01049
+# train_acc  = 0.81527 +- 0.00391
+# train_loss = 0.47476 +- 0.00683
+# val_acc    = 0.77880 +- 0.00440
+# val_loss   = 0.60213 +- 0.00980
+python -m grax grax_config/single/fit_many.gin impl/lp-batched.gin pubmed.gin --bindings='
+smooth_only=False
+batch_size=256
+'
+# dt         = 54.62896 +- 17.23061
+# test_acc   = 0.77830 +- 0.00634
+# test_loss  = 0.61808 +- 0.01017
+# train_acc  = 0.82079 +- 0.00923
+# train_loss = 0.46327 +- 0.01802
+# val_acc    = 0.77900 +- 0.00621
+# val_loss   = 0.59911 +- 0.01061
+python -m grax grax_config/single/fit_many.gin impl/lp-batched.gin pubmed.gin --bindings='
+smooth_only=False
+batch_size=512
+'
+# dt         = 25.46698 +- 8.12167
+# test_acc   = 0.77740 +- 0.00789
+# test_loss  = 0.62166 +- 0.00621
+# train_acc  = 0.81167 +- 0.01544
+# train_loss = 0.48405 +- 0.03237
+# val_acc    = 0.78100 +- 0.00826
+# val_loss   = 0.60686 +- 0.00931
+python -m grax grax_config/single/fit_many.gin impl/lp-batched.gin pubmed.gin --bindings='
+smooth_only=False
+batch_size=1024
+'
+# dt         = 17.49372 +- 4.71323
+# test_acc   = 0.78080 +- 0.00583
+# test_loss  = 0.62633 +- 0.00729
+# train_acc  = 0.83018 +- 0.01393
+# train_loss = 0.44851 +- 0.01858
+# val_acc    = 0.78240 +- 0.00747
+# val_loss   = 0.60884 +- 0.01065
+python -m grax grax_config/single/fit_many.gin impl/lp-batched.gin pubmed.gin --bindings='
+smooth_only=False
+batch_size=2048
+'
+# dt         = 8.25987 +- 2.53307
+# test_acc   = 0.78430 +- 0.01031
+# test_loss  = 0.63705 +- 0.00851
+# train_acc  = 0.83667 +- 0.01465
+# train_loss = 0.44809 +- 0.02960
+# val_acc    = 0.78540 +- 0.00921
+# val_loss   = 0.62000 +- 0.00671
+python -m grax grax_config/single/fit_many.gin impl/lp-batched.gin pubmed.gin --bindings='
+smooth_only=False
+batch_size=4096
+'
+# dt         = 4.45673 +- 1.64632
+# test_acc   = 0.78920 +- 0.00763
+# test_loss  = 0.61625 +- 0.00874
+# train_acc  = 0.88250 +- 0.02414
+# train_loss = 0.37534 +- 0.04522
+# val_acc    = 0.79480 +- 0.01017
+# val_loss   = 0.58853 +- 0.00717
+python -m grax grax_config/single/fit_many.gin impl/lp-batched.gin pubmed.gin --bindings='
+smooth_only=False
+batch_size=8192
+'
+# dt         = 3.12619 +- 1.43637
+# test_acc   = 0.79240 +- 0.00907
+# test_loss  = 0.57322 +- 0.00885
+# train_acc  = 0.89500 +- 0.02587
+# train_loss = 0.35397 +- 0.05473
+# val_acc    = 0.80840 +- 0.00933
+# val_loss   = 0.53898 +- 0.00628
+
+## BASELINE
+python -m grax grax_config/single/fit_many.gin impl/lp.gin pubmed.gin --bindings='smooth_only=False'
+# dt         = 2.73148 +- 1.17009
+# test_acc   = 0.80230 +- 0.00475
+# test_loss  = 0.52847 +- 0.00581
+# train_acc  = 0.93667 +- 0.03055
+# train_loss = 0.22029 +- 0.04178
+# val_acc    = 0.81940 +- 0.00710
+# val_loss   = 0.49114 +- 0.00321
 ```
 
 ## Hyperparameter Search
 
-### Cora
+### HP Cora
 
 ```bash
 python -m grax impl/lp.gin cora.gin tune.gin --bindings="smooth_only=True"
@@ -99,7 +352,7 @@ val_acc    = 0.8140000402927399 +- 0.00389870423535695
 val_loss   = 0.6397701740264893 +- 0.007373642323614721
 ```
 
-### CiteSeer
+### HP CiteSeer
 
 ```bash
 python -m grax impl/lp.gin citeseer.gin tune.gin --bindings="smooth_only=True"
@@ -173,7 +426,7 @@ val_acc    = 0.7192000269889831 +- 0.008059781172946168
 val_loss   = 1.0591167688369751 +- 0.004627228147501491
 ```
 
-### PubMed
+### HP PubMed
 
 ```bash
 python -m grax impl/lp.gin pubmed.gin tune.gin --bindings="smooth_only=True"
@@ -247,7 +500,7 @@ val_acc    = 0.8172000348567963 +- 0.008109250120413757
 val_loss   = 0.48490715622901914 +- 0.005156454258745644
 ```
 
-### CS
+### HP CS
 
 ```bash
 python -m grax impl/lp.gin cs.gin tune.gin --bindings="smooth_only=True"
@@ -321,7 +574,7 @@ val_acc    = 0.927111130952835 +- 0.004745369169005075
 val_loss   = 0.24426132291555405 +- 0.00545288510434571
 ```
 
-### Physics
+### HP Physics
 
 ```bash
 python -m grax impl/lp.gin physics.gin tune.gin --bindings="smooth_only=True"
@@ -395,7 +648,7 @@ val_acc    = 0.9659999728202819 +- 0.0062893147567407316
 val_loss   = 0.24312938302755355 +- 0.006798718424881579
 ```
 
-### Computer
+### HP Computer
 
 ```bash
 python -m grax impl/lp.gin computer.gin tune.gin --bindings="smooth_only=True"
@@ -469,7 +722,7 @@ val_acc    = 0.8619999527931214 +- 0.00686374688153931
 val_loss   = 0.5074866890907288 +- 0.009903563056501995
 ```
 
-### Photo
+### HP Photo
 
 ```bash
 python -m grax impl/lp.gin photo.gin tune.gin --bindings="smooth_only=True"

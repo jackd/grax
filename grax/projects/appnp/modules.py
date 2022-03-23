@@ -21,26 +21,30 @@ class APPNP(hk.Module):
         alpha: float = 0.1,
         name: tp.Optional[str] = None,
         edge_dropout_rate: float = 0,
+        v2: bool = False,
     ):
         super().__init__(name=name)
         self.head_transform = head_transform
         self.num_propagations = num_propagations
         self.alpha = alpha
         self.edge_dropout_rate = edge_dropout_rate
+        self.v2 = v2
 
     def __call__(
         self, A: COO, features: jnp.ndarray, is_training: bool = False,
     ) -> jnp.ndarray:
         x = self.head_transform(features, is_training)
-        A = map_data(
-            A,
-            lambda v: hk_utils.dropout(
-                v, is_training=is_training, rate=self.edge_dropout_rate
-            ),
-        )
-        x0 = x
+        x0 = self.alpha * x
+        x0 = x if self.v2 else self.alpha * x
+        A = map_data(A, lambda v: (1 - self.alpha) * v)
         for _ in range(self.num_propagations):
-            x = (1 - self.alpha) * (A @ x) + self.alpha * x0
+            A_drop = map_data(
+                A,
+                lambda v: hk_utils.dropout(
+                    v, is_training=is_training, rate=self.edge_dropout_rate
+                ),
+            )
+            x = A_drop @ x + x0
         return x
 
 

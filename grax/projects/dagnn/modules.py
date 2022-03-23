@@ -44,12 +44,18 @@ class DAGNN(hk.Module):
         node_transform: tp.Callable[[jnp.ndarray, bool], jnp.ndarray] = mlp,
         num_propagations: int = 20,
         gate_activation: tp.Callable = jax.nn.sigmoid,
+        adaptive: bool = True,
+        scale_factor: float = 1.0,
+        scale_method: str = "all",
         name=None,
     ):
         super().__init__(name=name)
         self.node_transform = node_transform
         self.num_propagations = num_propagations
         self.gate_activation = gate_activation
+        self.adaptive = adaptive
+        self.scale_factor = scale_factor
+        self.scale_method = scale_method
 
     def __call__(
         self,
@@ -59,5 +65,16 @@ class DAGNN(hk.Module):
     ):
         x = self.node_transform(node_features, is_training=is_training)
         x = krylov(graph, x, self.num_propagations)
-        logits = GatedSum(gate_activation=self.gate_activation)(x)
+        if self.adaptive:
+            assert self.scale_factor == 1, self.scale_factor
+            logits = GatedSum(gate_activation=self.gate_activation)(x)
+        else:
+            if self.scale_method == "all":
+                logits = self.scale_factor * jnp.sum(x, axis=1)
+            else:
+                assert self.scale_method == "most"
+                x, x_leading = jnp.split(x, (x.shape[1] - 1,), axis=1)
+                logits = self.scale_factor * jnp.sum(x, axis=1) + jnp.squeeze(
+                    x_leading, axis=1
+                )
         return logits

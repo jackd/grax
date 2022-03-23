@@ -1,0 +1,7 @@
+# scale adjacency
+import grax.projects.dagnn.utils
+
+adj_factor = @dagnn.utils.one_minus()
+dagnn.utils.one_minus.x = %epsilon
+
+epsilon = 0.1

@@ -14,9 +14,11 @@ node_features_transform = [
 graph_transform = [
     @grax.graph_utils.transforms.add_identity,
     @grax.graph_utils.transforms.symmetric_normalize,
+    @grax.graph_utils.transforms.scale,
 ]
 
 grax.graph_utils.transforms.to_format.fmt = %fmt
+grax.graph_utils.transforms.scale.scale = %adj_factor
 
 fmt = "dense"
 
@@ -25,6 +27,9 @@ module_fun = @dagnn.DAGNN
 dagnn.DAGNN.node_transform = @grax.hk_utils.mlp
 dagnn.DAGNN.num_propagations = %num_propagations
 dagnn.DAGNN.gate_activation = %gate_activation
+dagnn.DAGNN.adaptive = %adaptive
+dagnn.DAGNN.scale_factor = %logit_factor
+dagnn.DAGNN.scale_method = %scale_method
 grax.hk_utils.mlp.num_classes = %num_classes
 grax.hk_utils.mlp.hidden_filters = %filters
 grax.hk_utils.mlp.dropout_rate = %dropout_rate
@@ -45,8 +50,13 @@ optax.chain_star.transforms = [
 optax.adam.learning_rate = %lr
 optax.additive_weight_decay.weight_decay = %weight_decay
 
+logit_factor = 1.0
+adj_factor = 1.0
+
+adaptive = True
 lr = 1e-2
 filters = 64
 
 steps = 1000
 patience = 100
+scale_method = 'all'

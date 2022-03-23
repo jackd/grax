@@ -1,4 +1,5 @@
 import huf.cli
+import huf.config
 from absl import app
 
 import grax.config  # pylint: disable=unused-import

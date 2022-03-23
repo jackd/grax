@@ -1,0 +1,19 @@
+# makes appnp equivalent to non-adaptive DAGNN
+
+import huf.configurables
+
+import grax.projects.appnp.modules
+
+include "appnp/config/impl/appnp.gin"
+
+optax.chain_star.transforms = [
+    @optax.additive_weight_decay(),
+    @optax.adam(),
+]
+
+optax.additive_weight_decay.weight_decay = %weight_decay
+
+appnp.APPNP.v2 = True
+steps = 1000
+patience = 100
+edge_dropout_rate = 0

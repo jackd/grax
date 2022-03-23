@@ -16,7 +16,8 @@ disable=
     too-many-instance-attributes,
     too-many-locals,
     invalid-unary-operand-type,
-    not-context-manager
+    not-context-manager,
+    unpacking-non-sequence
 
 [format]
 

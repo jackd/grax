@@ -1,0 +1,10 @@
+import grax.config
+
+include "grax_config/single/data/physics.gin"
+include "appnp/config/v2/base.gin"
+
+fmt = "coo"
+
+weight_decay = 0
+dropout_rate = 0.8
+num_propagations = 5

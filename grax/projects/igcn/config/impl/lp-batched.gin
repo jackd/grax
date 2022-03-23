@@ -1,0 +1,8 @@
+include "igcn/config/impl/lp.gin"
+
+train_fun = @igcn.data.batched_preprocessed_logit_propagated_data
+
+igcn.data.batched_preprocessed_logit_propagated_data.batch_size = %batch_size
+grax.huf_utils.get_logger.freq = "step"
+
+batch_size = 128

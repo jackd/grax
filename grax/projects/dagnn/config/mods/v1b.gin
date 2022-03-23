@@ -1,0 +1,2 @@
+include "dagnn/config/mods/v1a.gin"
+num_propagations = 200

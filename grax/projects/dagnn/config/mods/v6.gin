@@ -1,0 +1,3 @@
+include "dagnn/config/mods/v1a.gin"
+include "dagnn/config/mods/v2a.gin"
+include "dagnn/config/mods/v5.gin"
